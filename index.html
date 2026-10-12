@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#4f46e5">
-<title>綜合型文書輔助工作台 v3.1</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' data: https://cdnjs.cloudflare.com; img-src 'self' blob: data:; media-src 'self' blob: data:; worker-src 'self' blob: https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' blob: data: https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://cdnjs.cloudflare.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com https://tessdata.projectnaptha.com https://api.openalex.org; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>綜合型文書輔助工作台 v4.0（本機 AI・資料不外傳）</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--card2:#f8fafc;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#4f46e5;--brand2:#0ea5e9;--ok:#16a34a;--warn:#b45309;--bad:#dc2626;--shadow:0 10px 30px -12px rgba(15,23,42,.18)}
@@ -141,6 +143,13 @@ details.prompt pre{white-space:pre-wrap;word-break:break-all;max-height:260px;ov
 a.lnk{color:var(--brand);text-decoration:none;word-break:break-all}a.lnk:hover{text-decoration:underline}
 .hdr-sub{font-size:.72rem;color:var(--muted)}
 .ib-txt{font-size:.78rem}
+.secbar{display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(22,163,74,.35);background:rgba(22,163,74,.07);border-radius:14px;padding:10px 12px;font-size:.8rem;line-height:1.6;margin-bottom:14px}
+.secbar i{color:var(--ok);font-size:1.1rem;margin-top:2px}
+.aiprog{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--card)}
+.aiprog-bar{height:6px;border-radius:4px;background:rgba(148,163,184,.25);overflow:hidden}
+.aiprog-bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width .3s}
+.aiprog-txt{font-size:.72rem;color:var(--muted);margin-top:4px;word-break:break-all}
+.engine{font-size:.72rem}
 /* ===== RWD ===== */
 @media(max-width:1023px){.panel-bd{max-height:none}}
 @media(max-width:640px){
@@ -155,7 +164,7 @@ a.lnk{color:var(--brand);text-decoration:none;word-break:break-all}a.lnk:hover{t
   .panel-hd{padding:8px}
   .panel-bd{padding:10px}
   .stab{font-size:.72rem}
-  .ib-txt{display:none}
+  .ib-txt{font-size:.7rem}
   .modal{padding:14px}
   .toast{left:10px;right:10px;bottom:10px}
   .toast div{max-width:none}
@@ -171,14 +180,18 @@ a.lnk{color:var(--brand);text-decoration:none;word-break:break-all}a.lnk:hover{t
       <div style="display:flex;align-items:center;gap:10px;min-width:0">
         <span class="ico" style="width:38px;height:38px"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
         <div style="min-width:0"><div style="font-weight:800;font-size:1.02rem;white-space:nowrap">綜合型文書輔助工作台</div>
-        <div class="hdr-sub">報告產出 · 報告檢核 · 政府專案 ｜ v3.1</div></div>
+        <div class="hdr-sub">報告產出 · 報告檢核 · 政府專案 ｜ v4.0 本機運算</div></div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span id="modeBadge" class="chip c-mute">模擬模式</span>
-        <button class="btn btn-sm" id="btnSettings" aria-label="AI 設定"><i class="fa-solid fa-gear"></i><span class="ib-txt">AI 設定</span></button>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:100%">
+        <span id="aiBadge" class="chip c-mute" title="本機 AI 狀態">本機 AI：未載入</span>
+        <button class="btn btn-sm" id="btnLoadAI" title="預先下載並載入本機 AI 模型（首次需下載，之後由瀏覽器快取）"><i class="fa-solid fa-microchip"></i><span class="ib-txt">載入本機 AI</span></button>
+        <button class="btn btn-sm" id="btnSave" title="將目前上傳資料與成果另存為專案檔（可加密）"><i class="fa-solid fa-floppy-disk"></i><span class="ib-txt">存專案</span></button>
+        <button class="btn btn-sm" id="btnOpen" title="匯入先前儲存的專案檔"><i class="fa-solid fa-folder-open"></i><span class="ib-txt">開專案</span></button>
+        <button class="btn btn-sm" id="btnWipe" title="立即清除本頁所有資料"><i class="fa-solid fa-eraser"></i><span class="ib-txt">清除全部</span></button>
         <button class="btn btn-sm" id="btnTheme" aria-label="切換深色／淺色">◐</button>
       </div>
     </div>
+    <div id="aiProgress" class="aiprog" hidden><div class="aiprog-bar"><span></span></div><div class="aiprog-txt"></div></div>
     <nav class="tabs" style="margin-top:10px" role="tablist">
       <button class="tab-btn active" data-tab="report" role="tab"><i class="fa-solid fa-file-pen"></i><span>一、報告產出</span></button>
       <button class="tab-btn" data-tab="review" role="tab"><i class="fa-solid fa-list-check"></i><span>二、報告檢核</span></button>
@@ -188,6 +201,7 @@ a.lnk{color:var(--brand);text-decoration:none;word-break:break-all}a.lnk:hover{t
 </header>
 
 <main class="wrap" style="padding-top:18px;padding-bottom:60px">
+<div class="secbar"><i class="fa-solid fa-shield-halved"></i><div><b>資料只留在這台電腦的這個分頁：</b>上傳檔案在瀏覽器記憶體內解析與運算（OCR、AI、檢核皆在本機），不寫入瀏覽器儲存區、不上傳伺服器；關閉或重新整理頁面即刪除。需保留請按「存專案」下載專案檔，下次以「開專案」匯入。對外連線僅限：下載開源程式與模型檔、以及（勾選時）向 OpenAlex 查詢<u>關鍵字</u>（不含文件內容）。</div></div>
 
 <section class="tab-sec active" id="tab-report">
   <div class="card">
@@ -235,6 +249,7 @@ a.lnk{color:var(--brand);text-decoration:none;word-break:break-all}a.lnk:hover{t
         </div>
         <div class="filelist" id="list-review"></div>
         <div class="ragbar" id="rag-review"></div>
+        <label class="ck" style="margin-top:6px"><input type="checkbox" id="rev-openalex" checked> 參考文獻以 OpenAlex 比對補全書目（只送出文獻標題／DOI）</label>
         <label class="lb" for="review-focus">檢核重點（選填）</label>
         <textarea id="review-focus" class="inp" rows="2" placeholder="例：以成果報告摘要為主，比對招標公告履約期限與預算"></textarea>
         <div class="act-grid" style="margin-top:12px">
@@ -277,10 +292,9 @@ a.lnk{color:var(--brand);text-decoration:none;word-break:break-all}a.lnk:hover{t
           <div><label class="lb" for="gov-budget">預算上限（元）</label><input id="gov-budget" class="inp" type="number" min="0" inputmode="numeric" placeholder="17032000"></div>
           <div><label class="lb" for="gov-months">期程（月）</label><input id="gov-months" class="inp" type="number" min="1" inputmode="numeric" placeholder="24"></div>
         </div>
-        <label class="lb" for="gov-kw">文獻搜尋關鍵字（選填，英文較佳；分號分隔；留空由 AI 依構想產生）</label>
+        <label class="lb" for="gov-kw">文獻／專家搜尋關鍵字（英文較佳，分號分隔；留空時由本機 AI 依構想與文件產生）</label>
         <input id="gov-kw" class="inp" placeholder="storage tank leak detection; pipeline non-destructive testing; soil gas fingerprint">
-        <label class="ck"><input type="checkbox" id="gov-openalex" checked> 自動搜尋學術文獻與臺灣專家（OpenAlex 公開資料庫，免費、免金鑰；需 API 模式）</label>
-        <label class="ck"><input type="checkbox" id="gov-web"> 允許 AI 網路搜尋（Claude web search：委員介紹頁、單價依據、相關計畫；需 API 模式，另計費）</label>
+        <label class="ck"><input type="checkbox" id="gov-openalex" checked> 查詢 OpenAlex 開放學術資料庫：相關文獻與臺灣專家（免費、免金鑰；只送出關鍵字，不送文件內容）</label>
         <div class="act-grid" style="margin-top:12px">
           <button class="btn act" data-action="proposal"><i class="fa-solid fa-file-lines"></i>1. 輸出 Proposal<small>依範本目錄撰寫</small></button>
           <button class="btn act" data-action="ppt"><i class="fa-solid fa-person-chalkboard"></i>2. 輸出 PPT<small>沿用底板・可編輯</small></button>
@@ -295,48 +309,13 @@ a.lnk{color:var(--brand);text-decoration:none;word-break:break-all}a.lnk:hover{t
 </section>
 </main>
 
-<div class="modal-bg" id="settingsModal">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="AI 連線設定">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h3 style="margin:0;font-size:1.1rem">AI 連線設定</h3>
-      <button class="btn btn-sm" data-close-modal aria-label="關閉">✕</button>
-    </div>
-    <label class="lb">連線模式</label>
-    <div class="row3">
-      <label class="btn btn-sm"><input type="radio" name="mode" value="mock"> 模擬資料</label>
-      <label class="btn btn-sm"><input type="radio" name="mode" value="proxy"> 後端代理（建議）</label>
-      <label class="btn btn-sm"><input type="radio" name="mode" value="direct"> 瀏覽器直連</label>
-    </div>
-    <div id="grpDirect">
-      <div class="warnbox" style="margin-top:10px"><b>注意：</b>瀏覽器直連時 API Key 存在本機瀏覽器；勿將含金鑰的檔案上傳 GitHub Pages。正式使用請改「後端代理」。</div>
-      <label class="lb" for="cfgKey">Anthropic API Key</label>
-      <input id="cfgKey" class="inp" type="password" placeholder="sk-ant-..." autocomplete="off">
-      <label class="ck"><input type="checkbox" id="cfgRemember"> 記住於此瀏覽器（localStorage；未勾選僅存於本分頁）</label>
-    </div>
-    <div id="grpProxy">
-      <label class="lb" for="cfgEndpoint">後端代理網址（POST，Anthropic Messages 格式）</label>
-      <input id="cfgEndpoint" class="inp" placeholder="https://your-worker.example.workers.dev/v1/messages">
-      <label class="lb" for="cfgToken">代理存取權杖（選填，Authorization: Bearer）</label>
-      <input id="cfgToken" class="inp" type="password" autocomplete="off">
-    </div>
-    <label class="lb" for="cfgModel">模型 ID</label>
-    <input id="cfgModel" class="inp" list="modelList">
-    <datalist id="modelList"><option value="claude-sonnet-5-5"><option value="claude-sonnet-5"><option value="claude-sonnet-4-6"><option value="claude-opus-5-5"><option value="claude-haiku-5-5"></datalist>
-    <label class="lb" for="cfgRag">外部 RAG 檢索端點（選填；留空用瀏覽器內 BM25）</label>
-    <input id="cfgRag" class="inp" placeholder="https://your-backend.example.com/rag/retrieve">
-    <div class="row3">
-      <div><label class="lb" for="cfgMaxTok">max_tokens</label><input id="cfgMaxTok" class="inp" type="number" min="1024"></div>
-      <div><label class="lb" for="cfgTopK">Top-K 區塊</label><input id="cfgTopK" class="inp" type="number" min="1"></div>
-      <div><label class="lb" for="cfgCtx">內文上限（字）</label><input id="cfgCtx" class="inp" type="number" min="5000"></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-      <button class="btn btn-primary" id="btnSaveCfg">儲存</button>
-      <button class="btn" id="btnTestCfg">測試連線</button>
-      <button class="btn" id="btnClearKey">清除金鑰</button>
-    </div>
-    <div id="cfgMsg" style="font-size:.8rem;margin-top:10px;color:var(--muted)"></div>
-  </div>
-</div>
+<input type="file" id="projFile" accept=".dawp,.json" hidden>
+<div class="modal-bg" id="pwModal"><div class="modal" role="dialog" aria-modal="true">
+  <h3 style="margin:0 0 6px;font-size:1.05rem" id="pwTitle">專案檔密碼</h3>
+  <p class="sub" id="pwDesc">設定密碼後，專案檔以 AES-256-GCM 加密；留空則不加密。</p>
+  <input id="pwInput" class="inp" type="password" autocomplete="new-password" placeholder="密碼（選填）">
+  <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end"><button class="btn" id="pwCancel">取消</button><button class="btn btn-primary" id="pwOk">確定</button></div>
+</div></div>
 <div class="toast" id="toast" aria-live="polite"></div>
 <script>
 /*!
@@ -356,22 +335,24 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 'use strict';
 /* =====================================================================
- * 綜合型文書輔助工作台 v3.1 — JavaScript
- *  0 設定 1 工具 2 檔案讀取（含 OLE/OOXML/ODF/RTF/PDF 解析器） 3 RAG 4 OpenAlex
- *  5 Prompt 6 AI 呼叫 7 執行流程 8 渲染 9 匯出 10 PPT 引擎 11 Mock 12 上傳 13 初始化
- * JSZip 已內嵌（離線可用）；pdf.js 與 PptxGenJS（僅無底板時）由 CDN 載入，含多組備援。
+ * 綜合型文書輔助工作台 v4.0 — 本機運算版
+ *  ‧ 所有檔案在瀏覽器記憶體內解析；不使用 localStorage／sessionStorage／IndexedDB 存放使用者資料
+ *  ‧ AI：WebLLM（開源，WebGPU 於本機執行 Qwen2.5 Instruct 開源模型）
+ *  ‧ OCR：Tesseract.js（開源，本機執行，繁中＋英文）
+ *  ‧ 文獻／專家：OpenAlex 開放學術資料庫（只送出關鍵字或文獻標題）
+ *  ‧ 無 AI 時：規則引擎仍直接由上傳文件擷取、比對、計算產出成果
+ *  ‧ Content-Security-Policy 限制所有對外連線只能到上述開源資源網域
  * ===================================================================== */
-
-/* ---------- 0. 設定 ---------- */
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
-const ANTHROPIC_VERSION = '2023-06-01';
 const CDN = {
   pdfjs: ['https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/legacy/build/pdf.min.mjs','https://unpkg.com/pdfjs-dist@5.4.296/legacy/build/pdf.min.mjs'],
   pdfjsUmd: ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'],
-  pptx: ['https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js','https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js','https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js']
+  pptx: ['https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js','https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js','https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js'],
+  webllm: ['https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/+esm','https://esm.run/@mlc-ai/web-llm@0.2.85','https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm'],
+  tesseract: ['https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js','https://unpkg.com/tesseract.js@5/dist/tesseract.min.js']
 };
-const DEFAULT_CFG = { mode:'mock', model:'claude-sonnet-5-5', endpoint:'', token:'', rag:'', maxTokens:16000, topK:12, maxCtx:120000, remember:false };
-const IMG_MAX_EDGE = 1568, IMG_MAX_BYTES = 5*1024*1024, PDF_MAX_BYTES = 20*1024*1024, MAX_ATTACH = 20, ATTACH_BUDGET = 22*1024*1024;
+const RAG = { maxCtx: 2600, topK: 6 };          // 本機小模型的上下文有限：每次送入 AI 的文件段落上限（字）
+const AI_IN = 2800;                               // 單次送入 AI 的使用者內容上限（字）
+const IMG_MAX_EDGE = 2200, PDF_MAX_PAGES_OCR = 40;
 const ACCEPT = '.pdf,.doc,.docx,.docm,.dot,.dotx,.dotm,.odt,.ott,.fodt,.rtf,.wps,.wpd,.txt,.text,.md,.markdown,.csv,.tsv,.json,.xml,.html,.htm,.xhtml,.mht,.mhtml,.eml,.log,.epub,.ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.odp,.otp,.dps,.xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.ods,.ots,.et,image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.heic,.heif,.tif,.tiff';
 const ROLES = {
   form: null,
@@ -381,11 +362,10 @@ const ROLES = {
   ppttpl: null
 };
 const ROLE_RULES = {
-  contract: [[/需求說明|規範書|規格書/,'需求說明書'],[/工作計畫書/,'工作計畫書'],[/契約|招標|合約|標案|採購|投標/,'招標契約'],[/成果報告|期中報告|期末報告|摘要|結論|建議事項/,'其他']],
-  review: [[/審查意見|會議紀錄|委員意見/,'審查意見'],[/工作計畫書/,'工作計畫書'],[/契約|招標|合約|標案案號|採購|投標|需求說明/,'招標契約'],[/報告|摘要|期中|期末|期初|進度|成果|report/i,'進度報告']],
-  gov: [[/範本|格式|template|proposal|服務建議書|建議書/i,'Proposal範本'],[/預算書|單價|酬金|估價|經費表|經費|人事費|業務費/,'預算/單價資料'],[/委員名單|專家名單|學者名單/,'委員/專家資料'],[/招標|契約|需求說明|規範|rfp|標案案號|投標/i,'招標文件'],[/報告|期中|期末|成果|摘要|簡報|說明/,'報告']]
+  contract: [[/需求說明|規範書|規格書/,'需求說明書'],[/工作計畫書/,'工作計畫書'],[/契約|招標|合約|標案|採購|投標|預算金額|履約期限|工作項目|廠商應/,'招標契約'],[/成果報告|期中報告|期末報告|摘要|結論|建議事項/,'其他']],
+  review: [[/審查意見|會議紀錄|委員意見/,'審查意見'],[/工作計畫書/,'工作計畫書'],[/契約|招標|合約|標案|採購|投標|需求說明|預算金額|履約期限|工作項目|廠商應|得標/,'招標契約'],[/成果報告|本計畫(已|共|辦理|完成)|本年度|摘要|結論|執行成果|report/i,'進度報告']],
+  gov: [[/範本|格式|template|proposal|服務建議書|建議書/i,'Proposal範本'],[/預算書|單價|酬金|估價|經費表|經費|人事費|業務費/,'預算/單價資料'],[/委員名單|專家名單|學者名單/,'委員/專家資料'],[/招標|契約|需求說明|規範|rfp|標案|投標|預算金額|履約期限|廠商應/i,'招標文件'],[/成果報告|本計畫(已|共|辦理|完成)|本年度|摘要|結論|執行成果|工作重點|簡報/,'報告']]
 };
-/** 依檔名→內容前 3000 字判斷類別 */
 function guessRole(zone, name, text){
   const rules = ROLE_RULES[zone]; if(!rules) return null;
   for(const [re, r] of rules) if(re.test(name)) return r;
@@ -395,22 +375,7 @@ function guessRole(zone, name, text){
   if(best && best[1] > 0) return best[0];
   return zone==='contract' ? '招標契約' : zone==='review' ? '進度報告' : '參考資料';
 }
-const STATE = { docs:{ form:[], contract:[], review:[], gov:[], ppttpl:[] }, panels:{}, lastRetrieval:{}, busy:false };
-
-function loadCfg(){
-  const c = {...DEFAULT_CFG};
-  try{ Object.assign(c, JSON.parse(localStorage.getItem('dat3_cfg')||'{}')); }catch(e){}
-  try{ c.apiKey = sessionStorage.getItem('dat3_key') || localStorage.getItem('dat3_key') || ''; }catch(e){ c.apiKey=''; }
-  return c;
-}
-function saveCfg(c){
-  const {apiKey, ...rest} = c;
-  localStorage.setItem('dat3_cfg', JSON.stringify(rest));
-  sessionStorage.removeItem('dat3_key'); localStorage.removeItem('dat3_key');
-  if(apiKey) (c.remember ? localStorage : sessionStorage).setItem('dat3_key', apiKey);
-}
-let CFG = loadCfg();
-
+const STATE = { docs:{ form:[], contract:[], review:[], gov:[], ppttpl:[] }, panels:{}, results:{}, lastRetrieval:{}, busy:false };
 /* ---------- 1. 工具 ---------- */
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
@@ -930,15 +895,10 @@ function bm25Rank(chunks, query){
 /**
  * 檢索：總量 ≤ 上限 → 全文；否則 pinRoles 文件優先（最多 40% 額度）＋ BM25（每種類別至少 2 段），再依文件原順序排列
  */
-async function retrieve(zone, query, pinRoles=[]){
-  const docs = STATE.docs[zone].filter(d=>d.text && d.status==='ready');
+async function retrieve(zone, query, pinRoles=[], maxCtx=RAG.maxCtx, topK=RAG.topK){
+  const CFG = { maxCtx, topK };
+  const docs = (Array.isArray(zone) ? zone : STATE.docs[zone]).filter(d=>d.text && d.status==='ready');
   if(!docs.length) return { mode:'none', sources:[] };
-  if(CFG.rag && CFG.mode !== 'mock'){
-    const r = await fetchWithTimeout(CFG.rag, { method:'POST', headers: proxyHeaders(), body: JSON.stringify({ collection:zone, query, top_k:CFG.topK, pin_roles:pinRoles, documents: docs.map(d=>({id:d.id, name:d.name, role:d.role, text:d.text})) }) }, 60000);
-    if(!r.ok) throw new Error('RAG 端點錯誤 HTTP '+r.status);
-    const j = await r.json();
-    return { mode:'remote', sources: arr(j.chunks).map((c,i)=>({ id:'S'+(i+1), file:c.source||c.file||'remote', role:c.role||'', chunk:c.chunk??i, text:String(c.text||''), score:c.score })) };
-  }
   const all = docs.flatMap(d=>d.chunks.map(c=>({...c, file:d.name, role:d.role||'', docId:d.id})));
   const total = all.reduce((a,c)=>a+c.text.length, 0);
   let picked, mode;
@@ -964,398 +924,259 @@ function renderRagBar(zone){
   const docs = STATE.docs[zone], ready = docs.filter(d=>d.text && d.status==='ready');
   const busy = docs.some(d=>d.status==='parsing');
   const chunks = ready.reduce((a,d)=>a+(d.chunks?.length||0),0), chars = ready.reduce((a,d)=>a+d.text.length,0);
-  const att = docs.filter(d=>d.status==='ready' && d.b64).length;
+  const att = docs.filter(d=>d.status==='ready' && d.ocr).length;
   const lr = STATE.lastRetrieval[zone];
-  const modeTxt = lr ? ({full:'全文送入', bm25:'BM25 '+lr.n+' 段', remote:'外部 RAG '+lr.n+' 段', none:'無文字文件'}[lr.mode]) : '尚未檢索';
+  const modeTxt = lr ? ({full:'全文送入', bm25:'BM25 '+lr.n+' 段', none:'無文字文件'}[lr.mode]) : '尚未檢索';
   const roles = {}; docs.filter(d=>d.status==='ready').forEach(d=>roles[d.role]=(roles[d.role]||0)+1);
   el.innerHTML = `<span class="dot ${busy?'busy':ready.length||att?'on':''}"></span><b>RAG</b>
     <span class="chip c-info">${ready.length} 份文字</span><span class="chip c-info">${chunks} 區塊</span><span class="chip c-mute">${chars.toLocaleString()} 字</span>
-    ${att?`<span class="chip c-warn">${att} 份以原檔送 AI 判讀</span>`:''}
+    ${att?`<span class="chip c-warn">${att} 份掃描檔已 OCR</span>`:''}
     ${Object.entries(roles).map(([r,n])=>`<span class="chip c-mute">${esc(r)}×${n}</span>`).join('')}
     <span class="chip ${lr?'c-ok':'c-mute'}">檢索：${modeTxt}</span>`;
 }
 
-/* ---------- 4. 外部文獻：OpenAlex（免費公開 API） ---------- */
-async function searchOpenAlex(queries){
-  const works = new Map(), errors = [];
-  for(const q of queries.slice(0,4)){
-    for(const suffix of ['', ' Taiwan']){
-      const url = `https://api.openalex.org/works?search=${encodeURIComponent(q+suffix)}&per_page=10&select=id,display_name,publication_year,doi,authorships,primary_location,cited_by_count`;
+
+/* ---------- E1. 本機 AI（WebLLM＋開源 Qwen2.5 Instruct） ---------- */
+const AI = {
+  engine:null, status:'idle', model:'', err:'', loading:null, sizeGB:0,
+  label(){ return this.status==='ready' ? `本機 AI（${this.model.replace(/-MLC$/,'')}）＋規則引擎` : '規則引擎（未使用 AI）'; },
+  async probe(){
+    if(!('gpu' in navigator)) return { ok:false, why:'此瀏覽器未提供 WebGPU（請使用最新版 Chrome 或 Edge）' };
+    try{ const ad = await navigator.gpu.requestAdapter(); if(!ad) return { ok:false, why:'找不到可用的 GPU（WebGPU adapter）' }; return { ok:true, f16: ad.features.has('shader-f16') }; }
+    catch(e){ return { ok:false, why:'WebGPU 初始化失敗：'+e.message }; }
+  },
+  ensure(){ if(this.status==='ready') return Promise.resolve(true); if(this.status==='unsupported') return Promise.resolve(false); if(!this.loading) this.loading = this._load().finally(()=>{ this.loading = null; }); return this.loading; },
+  async _load(){
+    const sup = await this.probe();
+    if(!sup.ok){ this.status = 'unsupported'; this.err = sup.why; updateAIBadge(); return false; }
+    this.status = 'loading'; this.err = ''; updateAIBadge(); showAIProg(0, '載入 WebLLM 開源推論元件…');
+    let webllm = null;
+    for(const u of CDN.webllm){ try{ const m = await import(u); if(m && m.CreateMLCEngine){ webllm = m; break; } }catch(e){ console.warn('WebLLM 載入失敗', u, e); } }
+    if(!webllm){ return this._fail('無法下載 WebLLM 元件（請確認網路可連線 cdn.jsdelivr.net）'); }
+    const list = (webllm.prebuiltAppConfig && webllm.prebuiltAppConfig.model_list) || [];
+    const mem = navigator.deviceMemory || 4;
+    const sizes = mem >= 8 ? ['7B','3B','1.5B'] : mem >= 4 ? ['3B','1.5B'] : ['1.5B'];
+    const quants = sup.f16 ? ['q4f16_1','q4f32_1'] : ['q4f32_1'];
+    const cands = [];
+    for(const s of sizes) for(const q of quants){ const id = `Qwen2.5-${s}-Instruct-${q}-MLC`; if(list.some(m=>m.model_id===id)) cands.push(id); }
+    if(!cands.length){ const any = list.filter(m=>/^Qwen.*Instruct/i.test(m.model_id) && (sup.f16 || !/f16/.test(m.model_id))).sort((a,b)=>(a.vram_required_MB||0)-(b.vram_required_MB||0)); if(any.length) cands.push(any[Math.min(1, any.length-1)].model_id); }
+    if(!cands.length) return this._fail('WebLLM 模型清單中找不到 Qwen Instruct 模型');
+    for(const id of cands){
       try{
-        const r = await fetchWithTimeout(url, {}, 20000);
-        if(!r.ok){ errors.push(`OpenAlex HTTP ${r.status}`); continue; }
-        const j = await r.json(); arr(j.results).forEach(w=>{ if(w && w.id && !works.has(w.id)) works.set(w.id, w); });
-      }catch(e){ errors.push(e.message); }
+        const rec = list.find(m=>m.model_id===id); this.sizeGB = rec && rec.vram_required_MB ? rec.vram_required_MB/1024 : 0;
+        showAIProg(0, `下載模型 ${id}（約 ${this.sizeGB? this.sizeGB.toFixed(1)+' GB 顯示記憶體' : '數 GB'}；首次需較久，之後由瀏覽器快取）…`);
+        this.engine = await webllm.CreateMLCEngine(id, { initProgressCallback: p => showAIProg(p.progress, p.text) });
+        this.model = id; this.status = 'ready'; updateAIBadge(); hideAIProg();
+        toast(`本機 AI 已就緒：${esc(id)}`, 'ok');
+        return true;
+      }catch(e){ console.warn('模型載入失敗', id, e); this.err = e.message || String(e); try{ if(this.engine) await this.engine.unload(); }catch(_){} this.engine = null; }
     }
-  }
-  const lit = [...works.values()].slice(0, 24).map((w,i)=>({
-    id:'L'+(i+1), title:w.display_name||'', year:w.publication_year, venue:w.primary_location?.source?.display_name || '',
-    url: w.doi || w.id, doi: w.doi || null, cited: w.cited_by_count,
-    authors: arr(w.authorships).map(a=>({ name:a.author?.display_name, openalex:a.author?.id, orcid:a.author?.orcid, inst: arr(a.institutions).map(x=>x.display_name).join('; '), tw: arr(a.institutions).some(x=>x.country_code==='TW') }))
-  }));
-  const poolMap = new Map();
-  lit.forEach(l=>l.authors.filter(a=>a.tw && a.name).forEach(a=>{
-    const k = a.openalex || a.name; const p = poolMap.get(k) || { name:a.name, inst:a.inst, url:a.orcid || a.openalex, works:[] };
-    if(!p.works.includes(l.id)) p.works.push(l.id); poolMap.set(k, p);
-  }));
-  const pool = [...poolMap.values()].sort((a,b)=>b.works.length-a.works.length).slice(0, 25).map((p,i)=>({ id:'E'+(i+1), ...p }));
-  return { lit, pool, errors:[...new Set(errors)] };
-}
-function litToXml(lit, pool){
-  const L = lit.length ? lit.map(l=>`<work id="${l.id}" year="${l.year||''}" venue="${esc(l.venue)}" url="${esc(l.url)}">${esc(l.title)}｜作者：${l.authors.slice(0,6).map(a=>`${esc(a.name)}(${esc(a.inst||'—')})`).join('、')}</work>`).join('\n') : '（無）';
-  const P = pool.length ? pool.map(p=>`<expert id="${p.id}" url="${esc(p.url||'')}">${esc(p.name)}｜${esc(p.inst)}｜相關文獻：${p.works.join(',')}</expert>`).join('\n') : '（無）';
-  return `<literature source="OpenAlex">\n${L}\n</literature>\n<expert_pool note="OpenAlex 中臺灣機構作者，僅供候選">\n${P}\n</expert_pool>`;
-}
-
-/* ---------- 5. Prompt 範本 ---------- */
-const BASE_RULES = `你是臺灣政府環境工程／工程顧問專案的資深文件工程師與審查顧問，熟悉政府採購法、契約驗收、期初期中期末審查與委員意見回覆實務。
-
-【資料使用規則（最高優先）】
-1. 只能依據 <sources>、<field_forms>、附加圖片／PDF、<literature>、<expert_pool>、網路搜尋結果（若有）與 <user_input> 回答。每項結論在 source 欄位標註來源編號（S#=上傳文件段落、IMG#/PDF#/F#=現場表單、A-IMG#/A-PDF#=其他附件、L#=文獻、E#=專家候選、W=網路搜尋並附網址）。
-2. 找不到的資訊：數值填 null、文字填「（資料未提供）」、verified 填「未查證」。嚴禁捏造數據、法規條號、人名、機關、文獻、DOI、網址。
-3. 推論或估算須寫出依據，verified 填「推估」；直接出自來源者填「已查證」。
-4. 使用臺灣繁體中文與慣用語（契約、廠商、機關、經費、人月、查核點）；金額新臺幣元（整數）；日期依來源格式（民國年保留民國年）。
-5. 文字中以〔黃標〕…〔/黃標〕、〔綠標〕…〔/綠標〕等標註者，是原文件的螢光標記（常見用法：黃標=待確認、綠標=待更新），檢核時須逐一列出。
-【輸出規則】
-6. 只輸出一個合法 JSON 物件，不得有 code fence 或 JSON 以外文字。
-7. 嚴格遵守 schema 欄位名稱與型別；無資料的陣列輸出 []；字串內換行用 \\n。
-8. 資料不足時仍輸出符合 schema 的 JSON，並在 warnings 說明缺漏。`;
-
-const PROMPTS = {
-form_ocr: { query:'契約 工作項目 採樣 監測 檢測 試點 頻率 數量 規格 方法 交付 報告 期限 品保 品管 現場', system: BASE_RULES + `
-
-【任務：現場表單電子化＋摘要表格＋說明報告】
-輸入：<field_forms>（IMG#=圖片、PDF#=PDF、F#=文字型檔案）、<sources>（招標契約，S#）、<user_input>。
-
-(1) forms：每份原始表單一個物件（一份 PDF 有多頁表單時，每頁一個物件），依原表單「由上而下、由左而右」順序以 blocks 重建，盡量仿照原格式：
-  - {"type":"heading","text"}：表單標題、區段標題（如「一、事業基本資料」）
-  - {"type":"fields","columns":1|2|3|4,"items":[{"label","value","unit","confidence":"高|中|低","source"}]}：原表單同一列有幾組「欄位：值」，columns 就填幾
-  - {"type":"table","title","columns":[...],"rows":[[...]]}：原表單的表格，欄位名稱與順序照原表；重複出現的區塊（如多組設備）合併成同一張表，每組一列
-  - {"type":"checklist","title","items":[{"label","checked":true|false}]}：勾選框，須正確判斷 ■☑✓ 為已勾、□ 為未勾
-  - {"type":"note","text"}：注意事項、備註、手寫附註（手寫內容前加「手寫：」）
-  - {"type":"signature","items":[{"role","name","date"}]}：簽名欄
-  字跡模糊：value 填最可能讀值並加「(?)」，confidence=低，並列入 issues。不得補值。手寫圈選、刪改也要記錄於 note 或 issues。
-(2) summary：重新整理成「可直接放入正式報告」的表格（例如以設備／點位／樣品為列、屬性為欄，單位寫在欄名）。
-  **必須包含 forms 中所有數值與內容，一筆都不能遺漏、不得改值**；無法放入主表者放入 summary.notes。
-(3) report_markdown：說明報告，章節依序為：
-  一、工作概述（日期、地點、對象、人員、工作項目）
-  二、契約依據（引用契約條款並標 [S#]；無契約時寫「未提供契約文件」）
-  三、執行內容與方法
-  四、成果數據（引用摘要表數據，數值須與 summary 一致）
-  五、契約符合情形（Markdown 表格：契約要求｜現場執行情形｜符合情形｜來源）
-  六、異常與待確認事項
-【Schema】
-{"forms":[{"title":string,"source":string,"blocks":[...]}],
- "summary":{"title":string,"columns":[string],"rows":[[string]],"notes":[string]},
- "report_markdown":string,
- "contract_matrix":[{"clause":string,"requirement":string,"field_evidence":string,"status":"符合"|"部分符合"|"不符"|"未提及","source":string}],
- "issues":[{"field":string,"problem":string,"suggestion":string}],
- "warnings":[string]}` },
-
-progress_check: { query:'進度 驗收 查核點 期初 期中 期末 期限 履約 交付 工作項目 數量 完成 契約 規格 預算 經費', system: BASE_RULES + `
-
-【任務：進度／驗收檢核】
-- 以 role="招標契約"/"工作計畫書" 文件為基準，role="進度報告" 文件為受檢對象，逐條比對工作項目、數量、規格、期限、經費、交付物。
-- 報告內部前後不一致（同一事項不同數字或日期）也列入 nonconformities。
-- nonconformities：severity「高」影響驗收或計價、「中」需修正、「低」建議。basis 寫契約條款或比對依據，finding 寫報告實況並引用原文數字。
-- todos：尚待辦理事項（owner：廠商／機關／未定；due 為來源中的期限，未知 null），螢光標記之待確認／待更新事項也要列入。
-- checkpoints：檢核節點（期初、期中、期末、各查核點、交付物），status「已完成|進行中|逾期|未開始|未查證」。今天日期見 <user_input>。
-- completion：工作項目完成度（item, required, done, status）。
-【Schema】
-{"nonconformities":[{"item":string,"basis":string,"finding":string,"severity":"高"|"中"|"低","source":string}],
- "todos":[{"task":string,"owner":string,"due":string|null,"priority":"高"|"中"|"低","source":string}],
- "checkpoints":[{"node":string,"planned":string|null,"actual":string|null,"status":string,"source":string}],
- "completion":[{"item":string,"required":string,"done":string,"status":"符合"|"部分符合"|"不符"|"未提及","source":string}],
- "warnings":[string]}` },
-
-quality_check: { query:'章節 目錄 摘要 前言 方法 結果 結論 建議 工作計畫 圖 表 單位 年 月 日 筆 處 場次', system: BASE_RULES + `
-
-【任務：報告品質檢核】
-- typos：錯別字、術語不一致、單位錯誤、數字前後不一致（例如摘要與結論的數字、年份不同）、圖表編號錯誤、標點格式、螢光標記未處理。location 標章節或頁碼（取自「【第 n 頁】」標記）。type「錯字|用語一致性|單位|數值一致性|日期一致性|圖表編號|格式|待確認標記」。
-- compliance：逐項比對招標契約／工作計畫書要求與報告章節，status「符合|部分符合|缺漏」。
-- overview：200 字內總評，只描述事實，不打分數。
-- 若 retrieval mode 為 bm25（非全文），在 warnings 註明錯字檢核僅涵蓋檢索到的段落。
-【Schema】
-{"typos":[{"location":string,"original":string,"suggestion":string,"type":string,"source":string}],
- "compliance":[{"plan_item":string,"report_section":string,"status":"符合"|"部分符合"|"缺漏","note":string,"source":string}],
- "overview":string,"warnings":[string]}` },
-
-review_qa: { query:'委員 意見 審查 回覆 說明 修正 建議 補充 疑義 方法 數據 成果 結論', system: BASE_RULES + `
-
-【任務：委員意見回覆／調整建議／QA】
-- 若來源含 role="審查意見"：逐條擬答（predicted=false），question 為原意見摘要。
-- 另依審查實務面向（契約符合性、法規、方法與數據可靠性、成果可用性、經費與進度、風險與後續）預測委員可能意見（predicted=true），每面向至少 1 題，總計 8–15 題。
-- answer 以「感謝委員意見。」開頭，說明處理方式與修正位置（章節／頁碼，未知以「〔○〕」佔位）。
-- adjustment：報告具體修正建議；priority「高|中|低」。
-- other_qa：簡報答詢可能被問的其他問題與建議答法。
-【Schema】
-{"qa":[{"category":string,"question":string,"answer":string,"adjustment":string,"priority":"高"|"中"|"低","predicted":boolean,"source":string}],
- "other_qa":[{"question":string,"answer":string,"source":string}],
- "warnings":[string]}` },
-
-apa: { query:'參考文獻 references 引用 et al doi 出版 期刊 年 journal 資料來源 計畫 報告', system: BASE_RULES + `
-
-【任務：APA 第 7 版參考文獻】
-- 找出來源中所有被引用、列於參考文獻、或以「」《》提及之計畫／報告／法規，整理為 APA 7。中文：作者（年）。題名。出版者。英文依 APA 7。
-- 只能使用來源中實際出現的書目資訊；缺少要素以「〔缺〕」標示並 verified=未查證，不得補造作者、年份、DOI／網址。
-- in_text 給內文引用格式；issues 列出內文引用與參考文獻不對應之處（含位置）。
-- 排序：中文在前（依作者姓氏筆畫），英文在後（依字母）。
-【Schema】
-{"references":[{"apa":string,"in_text":string,"type":"期刊"|"書籍"|"報告"|"法規"|"網頁"|"其他","doi_url":string|null,"verified":"已查證"|"未查證","source":string}],
- "issues":[string],"warnings":[string]}` },
-
-proposal: { pin:['Proposal範本'], query:'招標 需求 工作項目 規格 期程 履約 交付 評選 服務建議書 目錄 章節 預算', system: BASE_RULES + `
-
-【任務：依 Proposal 範本格式，將招標文件需求寫成服務建議書】
-- role="Proposal範本" 的文件決定目錄：章節編號樣式、章節順序與標題「完全依範本」；範本有而招標文件無對應內容者仍保留並寫「【待補】」。
-- role="招標文件" 的需求（工作項目、規格、期程、交付、評選項目、預算）全部須在某章節回應；requirement_map 列出每一項需求對應章節。
-- 每章 content_markdown 寫 200–600 字草稿，引用來源以 [S#] 標註；無來源支撐者標「【待補】」。
-- 未提供範本時：依政府委託服務案常見架構，template_used=false，並在 warnings 說明。
-- 期程與經費不得超過 <user_input> 與招標文件的上限。
-【Schema】
-{"title":string,"template_used":boolean,"toc":[{"no":string,"heading":string,"level":1|2|3}],
- "sections":[{"no":string,"heading":string,"content_markdown":string}],
- "requirement_map":[{"requirement":string,"section":string,"source":string}],"warnings":[string]}` },
-
-ppt: { query:'摘要 目標 方法 成果 結論 建議 期程 經費 數據 結果 工作內容', system: BASE_RULES + `
-
-【任務：將報告轉為審查簡報（NotebookLM 式：重點化、視覺化、每頁一個訊息）】
-- 10–16 頁。每頁選一種 type：
-  "cover"(title, subtitle) | "section"(title, subtitle) | "bullets"(title, bullets 3–5 點) |
-  "cards"(title, cards 2–4 張 {title, text≤40字}) | "kpi"(title, kpis 2–4 個 {value 數字含單位, label}) |
-  "timeline"(title, steps 3–6 個 {label, text≤25字}) | "compare"(title, left{title,bullets}, right{title,bullets}) |
-  "table"(title, table{columns, rows}≤6列) | "closing"(title, subtitle)
-- 多用 cards/kpi/timeline/compare 讓版面有變化，避免連續 3 頁 bullets。
-- 每頁 takeaway：一句 30 字內的關鍵訊息（cover/section/closing 留空）；notes：講者備忘 100 字內；source：來源編號。
-- 數字須出自來源，不得捏造。
-【Schema】
-{"theme":{"primary":"#RRGGBB","accent":"#RRGGBB","font":string},"slides":[{"type":string,"title":string,"subtitle":string,"bullets":[string],"cards":[{"title":string,"text":string}],"kpis":[{"value":string,"label":string}],"steps":[{"label":string,"text":string}],"left":{"title":string,"bullets":[string]},"right":{"title":string,"bullets":[string]},"table":{"columns":[string],"rows":[[string]]},"takeaway":string,"notes":string,"source":string}],"warnings":[string]}` },
-
-tender: { query:'招標 採購 工作項目 規格 經費 預算 單價 人月 期程 委員 專家 審查 資格 評選 成果 建議 後續', system: BASE_RULES + `
-
-【任務：輸出下一期招標文件＋可行性評估摘要表＋專業委員名單】
-A. tender_markdown（招標文件／需求說明書草稿）：案名、計畫緣起、採購標的與範圍、工作項目與規格、履約期限與查核點、交付成果與驗收方式、廠商資格、評選項目與配分建議、付款辦法、經費概算。延續上傳之前期報告成果與建議事項，並納入 <user_input> 構想與議題。法規條號僅能取自來源，否則寫「〔依相關法規〕」。
-B. feasibility（可行性評估摘要表）每一工項：
-  - work_item、description（工作內容）
-  - budget_ntd：經費預估；budget_basis：估算方式（數量×單價、人月×月薪等）；budget_sources：依據來源（S#、W 網址）。來源無單價或薪資基準時 budget_ntd=null，basis 寫「需依機關或公會酬金基準補入」，verified=未查證。不得自行假設單價。
-  - literature：該工項相關文獻／計畫，只能填 L#、S# 或網路搜尋取得的網址。
-  - schedule「第 M1–M3 月」；person_months（小數一位）＋ pm_basis。
-  - totals 必須等於各工項加總；任一工項 null 時對應 totals 為 null。
-  - feasibility_summary：技術、經費、期程三方面可行性結論各 1–2 句。
-C. committee（專業委員名單）8–12 位：
-  - 人選只能來自 <expert_pool>（填 pool_id）、上傳文件（role="委員/專家資料" 等）或網路搜尋結果；不得憑記憶生成人名。人選不足時以「（待填：○○專長委員）」佔位。
-  - name、org（任教大學/任職單位）、title（職稱）、expertise（專業）、profile_url（個人介紹頁，只能填來源中出現的網址；有 pool_id 時可留 null）。
-  - style_note：依公開資料可見之研究取向、審查時可能關注的重點；無資料寫「公開資料未見」。
-  - reputation_note：只能摘要公開可查證的專業紀錄（著作、公開審查／委員經歷、獲獎）並附來源；不得寫傳聞、私人評價或人身評論；無則 null。
-  - suitability：「高／中／低：理由」，依專業與本案相關性判斷。
-  - conflict_check：利益迴避風險，依來源判斷，未知寫「需查核」。
-【Schema】
-{"project_name":string,"tender_markdown":string,
- "feasibility":[{"work_item":string,"description":string,"budget_ntd":number|null,"budget_basis":string,"budget_sources":[string],"literature":[string],"schedule":string,"person_months":number|null,"pm_basis":string,"verified":"已查證"|"推估"|"未查證"}],
- "totals":{"budget_ntd":number|null,"months":number|null,"person_months":number|null},
- "feasibility_summary":{"technical":string,"budget":string,"schedule":string},
- "committee":[{"name":string,"org":string|null,"title":string|null,"expertise":string,"profile_url":string|null,"pool_id":string|null,"style_note":string,"reputation_note":string|null,"suitability":string,"conflict_check":string,"source":string}],
- "assumptions":[string],"warnings":[string]}` },
-
-gov_committee: { query:'委員 審查 意見 疑義 經費 可行性 法規 風險 效益 方法 數據 成果', system: '' }
+    return this._fail('模型載入失敗（可能是顯示記憶體不足或網路中斷）：'+this.err);
+  },
+  _fail(msg){ this.status = 'error'; this.err = msg; updateAIBadge(); hideAIProg(); toast(esc(msg)+'；本次改用規則引擎產出。','err'); return false; },
+  async chat(system, user, { json=true, maxTokens=1200 }={}){
+    if(this.status!=='ready') throw new Error('AI 未就緒');
+    const opt = { messages:[{ role:'system', content:system }, { role:'user', content:user }], temperature:0.1, max_tokens:maxTokens };
+    if(json) opt.response_format = { type:'json_object' };
+    let r;
+    try{ r = await this.engine.chat.completions.create(opt); }
+    catch(e){ if(!json) throw e; delete opt.response_format; r = await this.engine.chat.completions.create(opt); }
+    return String(r.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g,'').trim();
+  },
+  async json(system, user, opts){ try{ return parseJSONLoose(await this.chat(system, user, opts)); }catch(e){ console.warn('AI JSON 失敗', e); return null; } },
+  async text(system, user, opts){ try{ return await this.chat(system, user, { ...(opts||{}), json:false }); }catch(e){ console.warn('AI 文字失敗', e); return ''; } }
 };
-PROMPTS.gov_committee.system = PROMPTS.review_qa.system + `
-
-【本功能附加要求】以 role="報告" 的文件為受審對象，對照 role="招標文件" 需求；每題加上具體調整建議，並另列 5 題簡報答詢 QA 於 other_qa。`;
-const KW_PROMPT = `依使用者構想與文件摘要，產生學術資料庫搜尋用的英文查詢字串 3–4 組（每組 3–6 個英文字，聚焦技術主題）。只輸出 JSON：{"queries":[string]}`;
-
-/* ---------- 6. AI 呼叫層 ---------- */
-function proxyHeaders(){ const h = {'Content-Type':'application/json'}; if(CFG.token) h['Authorization'] = 'Bearer '+CFG.token; return h; }
-async function fetchWithTimeout(url, opt={}, ms=300000){
-  const ac = new AbortController(), t = setTimeout(()=>ac.abort(), ms);
-  try{ return await fetch(url, {...opt, signal:ac.signal}); }
-  catch(e){ if(e.name==='AbortError') throw new Error(`連線逾時（${ms/1000} 秒）：${url}`); throw new Error(`無法連線：${url}（${e.message}；請檢查網址、CORS 或網路）`); }
-  finally{ clearTimeout(t); }
+const AI_RULE = `你是臺灣政府環境工程顧問的文件助理。只能使用使用者提供的資料，不得自行補充或捏造任何數字、日期、人名、機關、條號或文獻；資料不足就寫「（資料未提供）」。使用臺灣繁體中文。`;
+function updateAIBadge(){
+  const b = $('#aiBadge'); if(!b) return;
+  const map = { idle:['c-mute','本機 AI：未載入'], loading:['c-warn','本機 AI：載入中'], ready:['c-ok','本機 AI：'+AI.model.replace(/-Instruct.*$/,'')], unsupported:['c-mute','本機 AI：不支援（規則引擎）'], error:['c-bad','本機 AI：載入失敗（規則引擎）'] };
+  const m = map[AI.status] || map.idle; b.className = 'chip '+m[0]; b.textContent = m[1]; b.title = AI.err || m[1];
+  const btn = $('#btnLoadAI'); if(btn) btn.disabled = AI.status==='ready' || AI.status==='loading';
 }
-/** 統一 AI 呼叫：回傳 { text, web:[{title,url}] } */
-async function callClaude({system, content, maxTokens, action, webSearch}){
-  let url, headers;
-  if(CFG.mode==='direct'){
-    if(!CFG.apiKey) throw new Error('尚未設定 API Key（右上角「AI 設定」）');
-    url = ANTHROPIC_URL;
-    headers = {'Content-Type':'application/json','x-api-key':CFG.apiKey,'anthropic-version':ANTHROPIC_VERSION,'anthropic-dangerous-direct-browser-access':'true'};
-  } else if(CFG.mode==='proxy'){
-    if(!CFG.endpoint) throw new Error('尚未設定後端代理網址（右上角「AI 設定」）');
-    url = CFG.endpoint; headers = {...proxyHeaders(), 'X-App-Action': action||'generic'};
-  } else throw new Error('目前為模擬模式');
-  const messages = [{ role:'user', content }];
-  const body = { model:CFG.model, max_tokens: maxTokens || CFG.maxTokens, system, messages };
-  if(webSearch) body.tools = [{ type:'web_search_20250305', name:'web_search', max_uses:8, user_location:{ type:'approximate', country:'TW', city:'Taipei', timezone:'Asia/Taipei' } }];
-  const texts = [], web = [];
-  for(let turn=0; turn<4; turn++){
-    let j = null, lastErr;
-    for(let attempt=0; attempt<3; attempt++){
-      const r = await fetchWithTimeout(url, {method:'POST', headers, body:JSON.stringify(body)});
-      if(r.ok){ j = await r.json(); break; }
-      let msg = 'HTTP '+r.status; try{ const e = await r.json(); msg += '：'+(e.error?.message || JSON.stringify(e)); }catch(_){}
-      if(r.status===413) msg += '（請求過大：請減少附件數量或改上傳文字型檔案）';
-      lastErr = new Error(msg);
-      if([429,500,502,503,529].includes(r.status)){ await sleep(1500*2**attempt); continue; }
-      throw lastErr;
-    }
-    if(!j) throw lastErr;
-    if(typeof j.text === 'string') return { text:j.text, web: arr(j.web) };
-    if(!Array.isArray(j.content)) throw new Error('無法解析回應格式');
-    for(const b of j.content){
-      if(b.type==='text'){ texts.push(b.text); arr(b.citations).forEach(c=>c.url && web.push({title:c.title||'', url:c.url})); }
-      if(b.type==='web_search_tool_result' && Array.isArray(b.content)) b.content.forEach(x=>x.url && web.push({title:x.title||'', url:x.url}));
-    }
-    if(j.stop_reason==='refusal') throw new Error('模型拒絕此請求（stop_reason: refusal）');
-    if(j.stop_reason==='max_tokens') toast('輸出達 max_tokens 上限，結果可能被截斷；請在 AI 設定提高 max_tokens','err');
-    if(j.stop_reason==='pause_turn'){ messages.push({role:'assistant', content:j.content}); continue; }
-    break;
+function showAIProg(p, txt){ const el = $('#aiProgress'); if(!el) return; el.hidden = false; $('.aiprog-bar span', el).style.width = Math.round((p||0)*100)+'%'; $('.aiprog-txt', el).textContent = txt || ''; }
+function hideAIProg(){ const el = $('#aiProgress'); if(el) el.hidden = true; }
+
+/* 數字防幻覺檢查：AI 文字中的數字必須出現在來源 */
+function numsNotInSource(aiText, srcText){
+  const src = numSet(srcText), out = [];
+  numSet(aiText).forEach(n=>{ if(!src.has(n) && !/^(19|20)\d\d$/.test(n) && +n > 10) out.push(n); });
+  return out;
+}
+const substrIn = (needle, hay) => { const n = String(needle||'').replace(/\s+/g,''); return n.length >= 2 && String(hay||'').replace(/\s+/g,'').includes(n); };
+
+/* ---------- E2. OCR（Tesseract.js 開源，本機執行） ---------- */
+const OCR = {
+  worker:null, loading:null,
+  async get(onProg){
+    if(this.worker) return this.worker;
+    if(!this.loading) this.loading = (async()=>{
+      await loadScriptAny(CDN.tesseract, ()=>!!window.Tesseract);
+      this.worker = await Tesseract.createWorker(['chi_tra','eng'], 1, { logger: m => { if(OCR._cb) OCR._cb(m); } });
+      try{ await this.worker.setParameters({ preserve_interword_spaces:'1' }); }catch(e){}
+      return this.worker;
+    })().catch(e=>{ this.loading = null; throw new Error('OCR 元件（Tesseract.js）無法載入：'+e.message); });
+    this._cb = onProg; return this.loading;
+  },
+  /** 對 canvas 執行 OCR，回傳 { lines:[{cells:[], conf, y}], text, conf } */
+  async read(canvas, onProg){
+    const w = await this.get(onProg); OCR._cb = onProg;
+    let data;
+    try{ ({ data } = await w.recognize(canvas, {}, { text:true, blocks:true })); }
+    catch(e){ ({ data } = await w.recognize(canvas)); }
+    const words = [];
+    arr(data.blocks).forEach(b=>arr(b.paragraphs).forEach(p=>arr(p.lines).forEach(l=>arr(l.words).forEach(wd=>words.push({ t:wd.text, c:wd.confidence, x0:wd.bbox.x0, x1:wd.bbox.x1, y0:wd.bbox.y0, y1:wd.bbox.y1 })))));
+    if(!words.length) return { lines: String(data.text||'').split('\n').filter(s=>s.trim()).map((s,i)=>({ cells:[cleanCJK(s)], conf:data.confidence||0, y:i })), text: cleanCJK(data.text||''), conf: data.confidence||0 };
+    return layoutFromBoxes(words, true);
   }
-  const seen = new Set();
-  return { text: texts.join(''), web: web.filter(w=>!seen.has(w.url) && seen.add(w.url)) };
-}
-/** 寬鬆 JSON 解析 */
-function parseJSONLoose(text){
-  let t = String(text).trim();
-  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const cands = []; if(fence) cands.push(fence[1]);
-  const a = t.indexOf('{'), b = t.lastIndexOf('}');
-  if(a>=0 && b>a) cands.push(t.slice(a,b+1));
-  for(const c of cands){ try{ return JSON.parse(c); }catch(e){ try{ return JSON.parse(c.replace(/,\s*([}\]])/g,'$1')); }catch(_){} } }
-  if(a>=0) for(let i=t.indexOf('{', a+1); i>=0 && i<b; i=t.indexOf('{', i+1)){ try{ return JSON.parse(t.slice(i,b+1)); }catch(_){} }
-  throw new Error(a<0 ? '回應中找不到 JSON 物件' : 'JSON 格式錯誤（可能被截斷）');
-}
-
-/* ---------- 7. 執行流程 ---------- */
-const ACTIONS = {
-  form_ocr:       { title:'現場表單電子化／摘要表／說明報告', zone:'form', rag:'contract', panel:'res-form', icon:'fa-wand-magic-sparkles', maxTokens:20000 },
-  progress_check: { title:'進度／驗收檢核', zone:'review', rag:'review', panel:'res-review', icon:'fa-flag-checkered' },
-  quality_check:  { title:'報告品質檢核', zone:'review', rag:'review', panel:'res-review', icon:'fa-spell-check' },
-  review_qa:      { title:'委員意見回覆／調整建議／QA', zone:'review', rag:'review', panel:'res-review', icon:'fa-comments' },
-  apa:            { title:'APA 參考文獻', zone:'review', rag:'review', panel:'res-review', icon:'fa-book' },
-  proposal:       { title:'Proposal', zone:'gov', rag:'gov', panel:'res-gov', icon:'fa-file-lines', maxTokens:20000 },
-  ppt:            { title:'簡報（PPT）', zone:'gov', rag:'gov', panel:'res-gov', icon:'fa-person-chalkboard' },
-  tender:         { title:'招標文件／可行性評估／委員名單', zone:'gov', rag:'gov', panel:'res-gov', icon:'fa-file-signature', maxTokens:20000, lit:true, web:true },
-  gov_committee:  { title:'委員意見與調整建議', zone:'gov', rag:'gov', panel:'res-gov', icon:'fa-user-tie' }
 };
-const STEPS = ['讀取與解析文件','切塊建立索引','RAG 檢索相關段落','外部文獻／網路搜尋','組裝 Prompt 範本','呼叫 AI 模型','解析 JSON 並驗證','渲染結果'];
-
-function rocToday(){ const d = new Date(); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（民國 ${d.getFullYear()-1911} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日）`; }
-function collectExtra(action){
-  const z = ACTIONS[action].zone, today = rocToday();
-  if(z==='form') return { '今天日期':today, '現場工作內容說明': $('#form-hint').value.trim() };
-  if(z==='review') return { '今天日期':today, '檢核重點': $('#review-focus').value.trim() };
-  return { '今天日期':today, '構想與議題': $('#gov-idea').value.trim(), '主辦機關': $('#gov-agency').value.trim(), '預算上限（元）': $('#gov-budget').value, '期程（月）': $('#gov-months').value };
-}
-function showSteps(P, title){
-  $('#'+P).innerHTML = `<div class="panel-hd"><div class="ttl"><i class="fa-solid fa-spinner fa-spin"></i>${esc(title)}・處理中</div><span class="chip c-info">${CFG.mode==='mock'?'模擬資料':esc(CFG.model)}</span></div>
-  <div class="panel-bd"><div class="steps">${STEPS.map((s,i)=>`<div class="step" data-step="${i}"><span class="si">${i+1}</span>${s}<span class="st-note"></span></div>`).join('')}</div>
-  <div class="skel" style="width:90%"></div><div class="skel" style="width:70%"></div></div>`;
-}
-function setStep(P, i, st, note=''){
-  const el = $(`#${P} [data-step="${i}"]`); if(!el) return;
-  el.className = 'step '+st; el.querySelector('.si').innerHTML = st==='done'||st==='skip' ? '✓' : st==='err' ? '✕' : i+1;
-  el.querySelector('.st-note').textContent = note;
-}
-/** 圖片／PDF 附件區塊（含數量與容量上限）；prefix 區分現場表單與其他附件編號 */
-function attachBlocks(docs, label, prefix, budget){
-  const blocks = [], skipped = []; let n = 0;
-  for(const d of docs){
-    if(!d.b64) continue;
-    const size = d.b64.length;
-    if(n >= MAX_ATTACH || size > budget.left){ skipped.push(d.name); continue; }
-    n++; budget.left -= size;
-    if(d.kind==='image'){ d.ref = `${prefix}IMG${n}`; blocks.push({type:'text', text:`${label}${d.ref}：${d.name}`}); blocks.push({type:'image', source:{type:'base64', media_type:d.mediaType, data:d.b64}}); }
-    else { d.ref = `${prefix}PDF${n}`; blocks.push({type:'text', text:`${label}${d.ref}：${d.name}`}); blocks.push({type:'document', source:{type:'base64', media_type:'application/pdf', data:d.b64}}); }
+const cleanCJK = s => String(s||'').replace(/(?<=[\u3400-\u9fff\uff08-\uff1f\u3000-\u303f])[ \t]+(?=[\u3400-\u9fff\uff08-\uff1f\u3000-\u303f])/g,'').replace(/[ \t]+/g,' ').trim();
+/** 由文字方塊座標重建「列／欄」：同一水平線歸為一列，水平間距大於 1.6 倍字高者切為不同欄 */
+function layoutFromBoxes(words, isOcr){
+  words = words.filter(w=>String(w.t||'').trim());
+  if(!words.length) return { lines:[], text:'', conf:0 };
+  const hs = words.map(w=>Math.max(1, w.y1-w.y0)).sort((a,b)=>a-b), mh = hs[Math.floor(hs.length/2)];
+  words.sort((a,b)=>((a.y0+a.y1)/2)-((b.y0+b.y1)/2));
+  const rows = [];
+  for(const w of words){
+    const cy = (w.y0+w.y1)/2, r = rows.find(r=>Math.abs(r.cy-cy) < mh*0.55);
+    if(r){ r.w.push(w); r.cy = (r.cy*(r.w.length-1)+cy)/r.w.length; } else rows.push({ cy, w:[w] });
   }
-  return { blocks, skipped };
+  rows.sort((a,b)=>a.cy-b.cy);
+  const lines = rows.map(r=>{
+    r.w.sort((a,b)=>a.x0-b.x0);
+    const cells = []; let cur = [r.w[0]];
+    for(let i=1;i<r.w.length;i++){ const gap = r.w[i].x0 - r.w[i-1].x1; if(gap > mh*1.6){ cells.push(cur); cur = []; } cur.push(r.w[i]); }
+    cells.push(cur);
+    const conf = r.w.reduce((a,w)=>a+(w.c??100),0)/r.w.length;
+    const join = c => c.reduce((s,w,i)=>{ if(!i) return w.t; const p = c[i-1], gap = w.x0 - p.x1, latin = /[A-Za-z0-9]$/.test(p.t) && /^[A-Za-z0-9]/.test(w.t); return s + (latin && gap > mh*0.35 ? ' ' : '') + w.t; }, '');
+    return { y:r.cy, conf, cells: cells.map(c=>cleanCJK(join(c))).filter(Boolean), x:cells.map(c=>c[0].x0) };
+  }).filter(l=>l.cells.length);
+  const text = lines.map(l=>l.cells.length>1 ? '| '+l.cells.join(' | ')+' |' : l.cells[0]).join('\n');
+  const conf = lines.length ? lines.reduce((a,l)=>a+l.conf,0)/lines.length : 0;
+  return { lines, text, conf };
 }
-
-async function runAction(action){
-  if(STATE.busy){ toast('目前有工作進行中，請稍候'); return; }
-  const def = ACTIONS[action], P = def.panel, docs = STATE.docs[def.zone], ragDocs = STATE.docs[def.rag];
-  if([...docs, ...ragDocs, ...STATE.docs.ppttpl].some(d=>d.status==='parsing')){ toast('文件仍在解析中，請稍候','err'); return; }
-  const mock = CFG.mode==='mock', extra = collectExtra(action);
-  const readyDocs = docs.filter(d=>d.status==='ready'), readyRag = ragDocs.filter(d=>d.status==='ready');
-  if(!mock){
-    if(action==='form_ocr' && !readyDocs.length){ toast('請先上傳現場表單','err'); return; }
-    if(action!=='form_ocr' && !readyRag.length && !extra['構想與議題']){ toast('請先上傳文件','err'); return; }
-  }
-  STATE.busy = true; $$(`[data-action="${action}"]`).forEach(b=>b.classList.add('running'));
-  showSteps(P, def.title);
-  let step = 0, promptPreview = '';
-  const tick = async (note='', st='done') => { setStep(P, step, st, note); step++; setStep(P, step, 'run'); if(mock) await sleep(180+Math.random()*180); };
+async function imageFileToCanvas(file){
+  const url = URL.createObjectURL(file);
   try{
-    setStep(P, 0, 'run');
-    await tick(`${readyDocs.length + (def.zone!==def.rag ? readyRag.length : 0)} 份`);
-    await tick(`${readyRag.reduce((a,d)=>a+(d.chunks?.length||0),0)} 區塊`);
-
-    const q = [PROMPTS[action].query, ...Object.values(extra), ...readyDocs.filter(d=>def.zone!==def.rag && d.text).map(d=>d.text.slice(0,800))].join(' ').slice(0, 4000);
-    const retrieval = await retrieve(def.rag, q, PROMPTS[action].pin || []);
-    STATE.lastRetrieval[def.rag] = { mode:retrieval.mode, n:retrieval.sources.length }; renderRagBar(def.rag);
-    await tick(retrieval.mode==='none' ? '無文字文件' : `${retrieval.sources.length} 段（${retrieval.mode}）`);
-
-    let ext = { lit:[], pool:[], errors:[] };
-    const useLit = !!(def.lit && $('#gov-openalex')?.checked), useWeb = !!(def.web && $('#gov-web')?.checked && !mock);
-    if(useLit){
-      if(mock) ext = MOCK_EXT();
-      else{
-        let queries = $('#gov-kw').value.split(/[;；\n]/).map(s=>s.trim()).filter(Boolean);
-        if(!queries.length){
-          try{ const r = await callClaude({ system:KW_PROMPT, content:[{type:'text', text:`構想：${extra['構想與議題']||'（無）'}\n文件摘要：${retrieval.sources.slice(0,6).map(s=>s.text.slice(0,300)).join('\n')}`}], maxTokens:400, action:'keywords' });
-            queries = arr(parseJSONLoose(r.text).queries).map(String); }catch(e){ ext.errors.push('關鍵字產生失敗：'+e.message); }
-        }
-        if(queries.length){ const r = await searchOpenAlex(queries); ext = { ...r, errors:[...ext.errors, ...r.errors], queries }; }
-      }
-    }
-    await tick(useLit || useWeb ? `文獻 ${ext.lit.length}・專家候選 ${ext.pool.length}${useWeb?'・網路搜尋開啟':''}` : '略過', useLit||useWeb ? 'done' : 'skip');
-
-    const content = [], budget = { left: ATTACH_BUDGET }, fieldTextDocs = [], skipped = [];
-    if(action==='form_ocr'){
-      const r1 = attachBlocks(readyDocs, '現場表單 ', '', budget); content.push(...r1.blocks); skipped.push(...r1.skipped);
-      readyDocs.filter(d=>d.text).forEach((d,i)=>{ d.ref = 'F'+(i+1); fieldTextDocs.push(d); });
-    }
-    const r2 = attachBlocks(readyRag.filter(d=>d.b64), action==='form_ocr' ? '契約附件 ' : '附件 ', 'A-', budget); content.push(...r2.blocks); skipped.push(...r2.skipped);
-    const tplDoc = STATE.docs.ppttpl.find(d=>d.tpl);
-    const tplInfo = action==='ppt' && tplDoc ? `<template_info>已上傳 PPT 底板「${esc(tplDoc.name)}」，輸出將套用其母片與配色。</template_info>\n` : '';
-    const ui = Object.entries(extra).filter(([,v])=>v!==''&&v!=null).map(([k,v])=>`${k}：${v}`).join('\n') || '（無）';
-    const userText = `<task>${def.title}</task>
-<retrieval mode="${retrieval.mode}">${retrieval.mode==='bm25'?'以下為依任務關鍵字檢索之相關段落（非全文）':'以下為上傳文件全文'}</retrieval>
-${sourcesToXml(retrieval.sources)}
-${fieldTextDocs.length ? '<field_forms>\n' + fieldTextDocs.map(d=>`<form id="${d.ref}" file="${esc(d.name)}">\n${d.text.slice(0, 30000)}\n</form>`).join('\n') + '\n</field_forms>\n' : ''}${useLit ? litToXml(ext.lit, ext.pool)+'\n' : ''}${useWeb ? '<web_search>允許使用 web_search 搜尋：委員任教／任職單位之個人介紹頁、工項單價或酬金基準、相關政府計畫。引用時 source 填網址。</web_search>\n' : ''}${tplInfo}<user_input>
-${ui}
-</user_input>
-請依系統指示輸出 JSON。`;
-    content.push({ type:'text', text:userText });
-    if(skipped.length) toast(`以下附件因數量或容量上限未送出：${esc(skipped.join('、'))}`,'err');
-    promptPreview = `【System】\n${PROMPTS[action].system}\n\n【User】\n${userText.slice(0,8000)}${userText.length>8000?'\n…（略）':''}\n\n【附件區塊】${content.filter(c=>c.type!=='text').length} 個${skipped.length?`（未送出：${skipped.join('、')}）`:''}`;
-    await tick(`${(PROMPTS[action].system.length+userText.length).toLocaleString()} 字・附件 ${content.filter(c=>c.type!=='text').length}`);
-
-    let resp;
-    if(mock){ await sleep(500); resp = { text: JSON.stringify(MOCK[action]()), web:[] }; }
-    else resp = await callClaude({ system:PROMPTS[action].system, content, action, webSearch:useWeb, maxTokens: Math.max(CFG.maxTokens, def.maxTokens||0) });
-    await tick(mock ? 'Mock' : `${resp.text.length.toLocaleString()} 字${resp.web.length?`・網頁 ${resp.web.length}`:''}`);
-
-    let data, parseErr = null;
-    try{ data = parseJSONLoose(resp.text); }catch(e){ parseErr = e; }
-    await tick(parseErr ? '失敗，改顯示原文' : 'OK');
-    const ctx = { retrieval, ext, web: resp.web, fieldDocs: readyDocs };
-    const view = parseErr
-      ? { html:`<div class="warnbox">JSON 解析失敗（${esc(parseErr.message)}），以下為模型原始輸出。</div><div class="md">${md(resp.text)}</div>`, text:resp.text, tables:[] }
-      : RENDER[action](data, ctx);
-    Object.assign(view, { retrieval, prompt:promptPreview, raw:resp.text, ext, web:resp.web, mock });
-    setStep(P, step, 'done');
-    mountPanel(P, def, view);
-    toast(`${esc(def.title)} 完成`, 'ok');
-  }catch(e){
-    console.error(e); setStep(P, step, 'err');
-    $(`#${P} .panel-bd`).insertAdjacentHTML('beforeend', `<div class="badbox"><b>執行失敗：</b>${esc(e.message)}</div>`);
-    $(`#${P} .panel-hd .ttl`).innerHTML = `${esc(def.title)}・失敗`;
-    toast(esc(e.message),'err');
-  }finally{
-    STATE.busy = false; $$('.running').forEach(b=>b.classList.remove('running'));
-  }
+    const img = await new Promise((res, rej)=>{ const i = new Image(); i.onload = ()=>res(i); i.onerror = ()=>rej(new Error('此瀏覽器無法解碼這張圖片（HEIC／TIFF 請先轉存 JPG 或 PNG）')); i.src = url; });
+    const sc = Math.min(1, IMG_MAX_EDGE/Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth*sc); c.height = Math.round(img.naturalHeight*sc);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height);
+    return c;
+  } finally { URL.revokeObjectURL(url); }
 }
+const canvasThumb = (c, w=420) => { const t = document.createElement('canvas'), s = Math.min(1, w/c.width); t.width = Math.round(c.width*s); t.height = Math.round(c.height*s); t.getContext('2d').drawImage(c,0,0,t.width,t.height); return t.toDataURL('image/jpeg', .8); };
 
+/* ---------- E3. PDF：文字層（含座標版面）＋掃描頁 OCR ---------- */
+async function pdfOpen(buf){ const pdfjs = await getPdfjs(); return pdfjs.getDocument({ data:new Uint8Array(buf), isEvalSupported:false }).promise; }
+/** 讀 PDF：有文字層的頁面依座標重建列／欄；無文字層的頁面轉成圖片後 OCR */
+async function pdfToPages(buf, onNote, allowOcr=true){
+  const pdf = await pdfOpen(buf), pages = []; let ocrPages = 0;
+  for(let i=1;i<=pdf.numPages;i++){
+    const page = await pdf.getPage(i), tc = await page.getTextContent(), vp = page.getViewport({ scale:1 });
+    const words = tc.items.filter(it=>it.str && it.str.trim()).map(it=>{ const x = it.transform[4], y = vp.height - it.transform[5], h = Math.abs(it.transform[3]) || it.height || 10; return { t:it.str, c:100, x0:x, x1:x+(it.width||it.str.length*h), y0:y-h, y1:y }; });
+    const pureLen = words.reduce((a,w)=>a+w.t.replace(/\s/g,'').length, 0);
+    if(pureLen >= 20){ const L = layoutFromBoxes(words, false); pages.push({ page:i, ...L, ocr:false }); continue; }
+    if(!allowOcr || ocrPages >= PDF_MAX_PAGES_OCR){ pages.push({ page:i, lines:[], text:'', conf:0, ocr:false, skipped:true }); continue; }
+    onNote && onNote(`第 ${i}/${pdf.numPages} 頁為掃描影像，OCR 中…`);
+    const sc = Math.min(3, 2000/Math.max(vp.width, vp.height)), v2 = page.getViewport({ scale:sc }), c = document.createElement('canvas');
+    c.width = Math.round(v2.width); c.height = Math.round(v2.height);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,c.width,c.height);
+    await page.render({ canvasContext:g, viewport:v2 }).promise;
+    try{
+      const L = await OCR.read(c, m=>{ if(m.status==='recognizing text') onNote && onNote(`第 ${i}/${pdf.numPages} 頁 OCR ${Math.round(m.progress*100)}%`); });
+      pages.push({ page:i, ...L, ocr:true, thumb: canvasThumb(c, 900) }); ocrPages++;
+    }catch(e){ pages.push({ page:i, lines:[], text:'', conf:0, ocr:true, err:e.message, thumb: canvasThumb(c, 900) }); }
+  }
+  return { pages, numPages: pdf.numPages, ocrPages };
+}
+const pagesToText = pages => pages.map(p=>`【第 ${p.page} 頁】\n${p.text}`).join('\n\n');
+
+/* ---------- E4. OpenAlex 開放學術資料庫（只送出關鍵字／標題） ---------- */
+async function oaFetch(path){
+  const r = await fetch('https://api.openalex.org/'+path, { referrerPolicy:'no-referrer', credentials:'omit' });
+  if(!r.ok) throw new Error('OpenAlex HTTP '+r.status); return r.json();
+}
+async function oaWorks(query, n=6){
+  const j = await oaFetch(`works?search=${encodeURIComponent(query)}&per_page=${n}&select=id,display_name,publication_year,doi,authorships,primary_location,cited_by_count,relevance_score`);
+  return arr(j.results);
+}
+async function oaAuthorsTW(query, n=10){
+  try{ const j = await oaFetch(`authors?search=${encodeURIComponent(query)}&filter=last_known_institutions.country_code:TW&per_page=${n}&select=id,display_name,orcid,last_known_institutions,works_count,cited_by_count,summary_stats,topics`); return arr(j.results); }
+  catch(e){ const j = await oaFetch(`authors?search=${encodeURIComponent(query)}&filter=last_known_institution.country_code:TW&per_page=${n}`); return arr(j.results); }
+}
+async function oaWorkByDoi(doi){ try{ return await oaFetch('works/doi:'+encodeURIComponent(doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i,''))); }catch(e){ return null; } }
+const normTitle = s => String(s||'').toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g,'');
+function titleSim(a, b){ a = normTitle(a); b = normTitle(b); if(!a || !b) return 0; const g = s => { const o = new Set(); for(let i=0;i<s.length-1;i++) o.add(s.slice(i,i+2)); return o; }; const A = g(a), B = g(b); let n = 0; A.forEach(x=>{ if(B.has(x)) n++; }); return 2*n/(A.size+B.size||1); }
+
+/* ---------- E5. 文字分析工具（規則引擎共用） ---------- */
+const CJK = /[\u3400-\u9fff]/;
+function splitSentences(text){ return String(text||'').split(/(?<=[。！？；!?;])|\n+/).map(s=>s.replace(/^[\s|]+|[\s|]+$/g,'').trim()).filter(s=>s.replace(/[\s|]/g,'').length >= 4); }
+function bigrams(s){ s = String(s||'').replace(/[^\u3400-\u9fffA-Za-z0-9]/g,''); const o = new Set(); for(let i=0;i<s.length-1;i++) o.add(s.slice(i,i+2)); return o; }
+function jacc(a, b){ const A = a instanceof Set ? a : bigrams(a), B = b instanceof Set ? b : bigrams(b); if(!A.size || !B.size) return 0; let n = 0; A.forEach(x=>{ if(B.has(x)) n++; }); return n/(A.size+B.size-n); }
+function cover(a, b){ const A = a instanceof Set ? a : bigrams(a), B = b instanceof Set ? b : bigrams(b); if(!A.size) return 0; let n = 0; A.forEach(x=>{ if(B.has(x)) n++; }); return n/A.size; }
+/** 在文件集合中找出 doc／頁碼位置（依「【第 n 頁】」標記） */
+function locate(doc, idx){ const before = doc.text.slice(0, idx), m = before.match(/【第 (\d+) 頁】(?![\s\S]*【第 \d+ 頁】)/) || before.match(/【投影片 (\d+)】(?![\s\S]*【投影片 \d+】)/); return doc.name + (m ? (before.lastIndexOf('【投影片')>before.lastIndexOf('【第') ? ` 投影片${m[1]}` : ` p.${m[1]}`) : ''); }
+const CN_NUM = { 零:0,〇:0,一:1,壹:1,二:2,貳:2,兩:2,三:3,參:3,叁:3,四:4,肆:4,五:5,伍:5,六:6,陸:6,七:7,柒:7,八:8,捌:8,九:9,玖:9 };
+const CN_UNIT = { 十:10,拾:10,百:100,佰:100,千:1000,仟:1000 }, CN_BIG = { 萬:1e4,億:1e8 };
+function cnToNum(s){ let total = 0, sec = 0, num = 0; for(const ch of s){ if(ch in CN_NUM) num = CN_NUM[ch]; else if(ch in CN_UNIT){ sec += (num||1)*CN_UNIT[ch]; num = 0; } else if(ch in CN_BIG){ total += (sec+num)*CN_BIG[ch]; sec = 0; num = 0; } } return total+sec+num; }
+/** 擷取金額：新臺幣 123,456 元／12.3 萬元／中文大寫 */
+function findAmounts(text){
+  const out = [], t = String(text||'');
+  for(const m of t.matchAll(/(?:新臺幣|新台幣|NT\$|NTD)?\s*(\d[\d,]*(?:\.\d+)?)\s*(萬|億|千)?\s*元/g)){ const v = +m[1].replace(/,/g,'') * (m[2]==='萬'?1e4:m[2]==='億'?1e8:m[2]==='千'?1e3:1); if(v >= 1000) out.push({ v, raw:m[0], idx:m.index }); }
+  for(const m of t.matchAll(/(?:新臺幣|新台幣)\s*([零〇一二三四五六七八九十百千萬億壹貳參叁肆伍陸柒捌玖拾佰仟兩]+)\s*元/g)){ const v = cnToNum(m[1]); if(v >= 1000) out.push({ v, raw:m[0], idx:m.index }); }
+  return out;
+}
+/** 擷取日期（民國／西元），回傳 {d:Date, raw, idx} */
+function findDates(text){
+  const out = [], t = String(text||''), push = (y, mo, d, raw, idx) => { y = +y; if(y < 1911) y += 1911; if(mo<1||mo>12||d<1||d>31||y<1990||y>2100) return; out.push({ d:new Date(y, mo-1, d), raw, idx }); };
+  for(const m of t.matchAll(/(民國)?\s*(\d{2,4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/g)) push(m[2], +m[3], +m[4], m[0], m.index);
+  for(const m of t.matchAll(/(?<![\d/])(\d{2,4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})(?![\d/])/g)) push(m[1], +m[2], +m[3], m[0], m.index);
+  return out;
+}
+const fmtROC = d => `${d.getFullYear()-1911}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+const UNIT_RE = '(處次|處|場次|場|次|筆|口|件|份|座|家|人次|人|式|點|批|個月|月|日曆天|工作天|天|頁|項|案|井|支|部|台|輛|公頃|平方公尺|公尺|公里|噸|公噸|%)';
+/** 擷取「數量＋單位」及其前後文：key=前文（至上一個標點）、after=後文 */
+function findQuantities(text){
+  const out = [], t = String(text||''), re = new RegExp('(\\d[\\d,]*(?:\\.\\d+)?)\\s*'+UNIT_RE, 'g');
+  for(const m of t.matchAll(re)){
+    const v = +m[1].replace(/,/g,''); if(!isFinite(v)) continue;
+    if(/[\d./\-]$/.test(t.slice(Math.max(0,m.index-1), m.index))) continue;
+    let before = t.slice(Math.max(0, m.index-16), m.index); const cut = before.search(/[。；，,、：:\n()（）|][^。；，,、：:\n()（）|]*$/); if(cut >= 0) before = before.slice(cut+1);
+    before = before.replace(/[^\u3400-\u9fffA-Za-z]/g,'');
+    let after = t.slice(m.index+m[0].length, m.index+m[0].length+10).split(/[。；，,、：:\n)）|]/)[0].replace(/[^\u3400-\u9fffA-Za-z]/g,'');
+    out.push({ key:before.slice(-12) || after.slice(0,8), after, v, unit:m[2], raw:m[0], idx:m.index });
+  }
+  return out;
+}
+/** 標題偵測：壹、一、（一）、第X章、1.／1.1 */
+function headingLevel(line){
+  const s = String(line||'').trim(); if(!s || s.length > 46 || /[。；]$/.test(s)) return 0;
+  if(/^(參考文獻|參考資料|引用文獻|References|Bibliography|附錄|附件|摘要|結論|建議|結論與建議)\s*[:：]?$/i.test(s)) return 1;
+  if(/^第[一二三四五六七八九十百\d]+[章篇]/.test(s) || /^[壹貳參肆伍陸柒捌玖拾]+[、.．]/.test(s)) return 1;
+  if(/^[一二三四五六七八九十]+[、.．]/.test(s) || /^\d{1,2}[.．、]\s*[^\d]/.test(s) || /^第[一二三四五六七八九十\d]+節/.test(s)) return 2;
+  if(/^[（(][一二三四五六七八九十\d]+[)）]/.test(s) || /^\d{1,2}\.\d{1,2}(\.\d+)?\s*\S/.test(s)) return 3;
+  return 0;
+}
+/** 依標題切段落：回傳 [{title, level, text, doc}] */
+function sectionsOf(doc){
+  const lines = doc.text.split('\n'), out = []; let cur = { title: '概述', level:0, lines:[], doc };
+  for(const l of lines){ if(/^【(第 \d+ 頁|投影片 \d+)】$/.test(l.trim())){ cur.lines.push(l); continue; } const lv = headingLevel(l); if(lv && lv <= 2){ if(cur.lines.join('').trim()) out.push(cur); cur = { title:l.trim(), level:lv, lines:[], doc }; } else cur.lines.push(l); }
+  if(cur.lines.join('').trim()) out.push(cur);
+  return out.map(s=>({ title:s.title, level:s.level, text:s.lines.join('\n'), doc:s.doc }));
+}
+/** 擷取式摘要：依雙字詞 TF-IDF 重要度＋含數字加分，挑選代表句 */
+function topSentences(text, n=4, maxLen=90){
+  const sents = splitSentences(text).filter(s=>s.length <= 200 && !/^\|/.test(s) && !/^【/.test(s));
+  if(!sents.length) return [];
+  const df = {}; sents.forEach(s=>bigrams(s).forEach(g=>df[g]=(df[g]||0)+1));
+  const N = sents.length;
+  const sc = sents.map((s,i)=>{ const g = bigrams(s); let v = 0; g.forEach(x=>{ v += Math.log(1+N/df[x]); }); v = v/Math.sqrt(g.size||1); if(/\d/.test(s)) v *= 1.25; if(i < 3) v *= 1.1; return { s:s.length > maxLen ? s.slice(0,maxLen)+'…' : s, v, i }; });
+  return sc.sort((a,b)=>b.v-a.v).slice(0,n).sort((a,b)=>a.i-b.i).map(x=>x.s);
+}
+/** 螢光標記擷取 */
+function findMarks(doc){ const out = []; for(const m of doc.text.matchAll(/〔(黃標|綠標|[^〔〕/]{1,4}標|標示)〕([\s\S]*?)〔\/\1〕/g)) out.push({ kind:m[1], text:m[2].trim(), idx:m.index, loc:locate(doc, m.index) }); return out; }
+const stripMarks = s => String(s||'').replace(/〔\/?[^〔〕]{1,5}〕/g,'');
 /* ---------- 8. 渲染器 ---------- */
 function md(src){
   const lines = esc(src||'').split('\n'); let html = '', list = null, tbl = [];
@@ -1553,8 +1374,8 @@ tender(d, ctx){
   const cap = +($('#gov-budget')?.value||0), mcap = +($('#gov-months')?.value||0);
   if(cap && sumB > cap) checks.push(`經費${unknownB?'（已估部分）':''} ${fmtMoney(sumB)} 超過預算上限 ${fmtMoney(cap)}`);
   if(mcap && months && months > mcap) checks.push(`期程 ${months} 月超過指定 ${mcap} 月`);
-  const budgetFoot = unknownB ? `${fmtMoney(sumB)}<br><small>（不含 ${unknownB} 項未估）</small>` : fmtMoney(sumB);
-  const pmFoot = unknownPM ? `${sumPM}（不含 ${unknownPM} 項未估）` : String(sumPM);
+  const budgetFoot = !known.length ? '未查證' : unknownB ? `${fmtMoney(sumB)}<br><small>（不含 ${unknownB} 項未估）</small>` : fmtMoney(sumB);
+  const pmFoot = !pmKnown.length ? '未查證' : unknownPM ? `${sumPM}（不含 ${unknownPM} 項未估）` : String(sumPM);
   const a = makeTable('可行性評估摘要表', [
     {k:'work_item',h:'計畫工項',f:(v,r)=>`<b>${esc(v)}</b><div style="color:var(--muted);font-size:.74rem">${esc(r.description||'')}</div>`, csv:(v,r)=>`${v}｜${r.description||''}`},
     {k:'budget_ntd',h:'經費預估（元）',f:money, csv:v=>isNum(v)?String(v):'未查證'},
@@ -1564,7 +1385,7 @@ tender(d, ctx){
     {k:'person_months',h:'人月',f:(v,r)=>`${isNum(v)?esc(v):badge('未查證')}<div style="color:var(--muted);font-size:.72rem">${esc(r.pm_basis||'')}</div>`, csv:(v,r)=>`${isNum(v)?v:'未查證'}（${r.pm_basis||''}）`},
     {k:'verified',h:'查證',f:badge}], fe,
     ['<b>合計</b>', budgetFoot, '', '', months?`共 ${months} 個月`:'—', pmFoot, ''],
-    ['合計', unknownB?`${sumB}（不含 ${unknownB} 項未估）`:String(sumB), '', '', months?`共 ${months} 個月`:'', pmFoot, '']);
+    ['合計', !known.length ? '未查證' : unknownB?`${sumB}（不含 ${unknownB} 項未估）`:String(sumB), '', '', months?`共 ${months} 個月`:'', pmFoot, '']);
   const com = arr(d.committee).map(c=>{
     const p = c.pool_id && poolById[c.pool_id];
     const placeholder = /^（?待填/.test(c.name||'');
@@ -1596,25 +1417,23 @@ tender(d, ctx){
 RENDER.gov_committee = RENDER.review_qa;
 
 /* 8-3 面板掛載 */
-function emptyPanel(id){
-  $('#'+id).innerHTML = `<div class="panel-hd"><div class="ttl">結果面板</div></div><div class="panel-bd"><div class="empty"><i class="fa-solid fa-wand-magic-sparkles"></i>上傳文件後點擊功能按鈕，結果會顯示在這裡<br><small>（模擬模式下可直接點按鈕看範例）</small></div></div>`;
-}
+
 function mountPanel(id, def, view){
   const p = $('#'+id), subDef = p.dataset.subtabs;
   const subs = view.sub && subDef ? subDef.split(',').map(x=>x.split(':')) : null;
   const st = STATE.panels[id] = { def, view, active: subs ? subs[0][0] : null };
   const r = view.retrieval || { sources:[] };
-  p.innerHTML = `<div class="panel-hd"><div class="ttl"><i class="fa-solid ${def.icon}" style="color:var(--brand)"></i>${esc(def.title)}${view.mock?' <span class="chip c-warn">模擬資料</span>':''}</div><div class="panel-tools" data-tools></div></div>
+  p.innerHTML = `<div class="panel-hd"><div class="ttl"><i class="fa-solid ${def.icon}" style="color:var(--brand)"></i>${esc(def.title)}${view.engine?` <span class="chip ${view.engine.ai?'c-ok':'c-info'} engine">${esc(view.engine.label)}</span>`:''}</div><div class="panel-tools" data-tools></div></div>
     ${subs ? `<div class="panel-subtabs">${subs.map(([k,l],i)=>`<button class="stab ${i?'':'active'}" data-sub="${k}">${esc(l)}</button>`).join('')}</div>` : ''}
     <div class="panel-bd fade" data-body></div>`;
   const body = $('[data-body]', p);
   const cur = () => subs ? view.sub[st.active] : view;
-  const mockNote = view.mock ? `<div class="mockbox"><b>目前為「模擬模式」：</b>以下是固定的範例資料，<u>並未分析你上傳的檔案</u>（檔案解析與 RAG 檢索已實際執行，可展開下方「RAG 來源」確認）。請按右上角「AI 設定」切換為後端代理或瀏覽器直連，才會由 AI 產出真實結果。</div>` : '';
+  const mockNote = view.engine && view.engine.note ? `<div class="mockbox">${view.engine.note}</div>` : '';
   const paint = () => {
     body.innerHTML = mockNote + (cur()?.html || '<div class="empty">（無資料）</div>')
       + (r.sources?.length ? `<details class="prompt"><summary>RAG 來源（${r.sources.length} 段，模式：${esc(r.mode)}）</summary>${r.sources.map(s=>`<div style="margin:6px 0"><span class="chip c-info">${s.id}</span> ${esc(s.file)} <span class="chip c-mute">${esc(s.role||'')}</span> #${s.chunk}<div style="white-space:pre-wrap;max-height:90px;overflow:auto">${esc(s.text.slice(0,400))}${s.text.length>400?'…':''}</div></div>`).join('')}</details>` : '')
-      + (arr(view.web).length ? `<details class="prompt"><summary>網路搜尋結果（${view.web.length}）</summary>${view.web.map(w=>`<div><a class="lnk" href="${esc(w.url)}" target="_blank" rel="noopener">${esc(w.title||w.url)}</a></div>`).join('')}</details>` : '')
-      + `<details class="prompt"><summary>檢視送出的 Prompt（除錯用）</summary><pre>${esc(view.prompt||'')}</pre></details>`;
+      + (false ? `<details class="prompt"><summary>網路搜尋結果（${view.web.length}）</summary>${view.web.map(w=>`<div><a class="lnk" href="${esc(w.url)}" target="_blank" rel="noopener">${esc(w.title||w.url)}</a></div>`).join('')}</details>` : '')
+      + `<details class="prompt"><summary>處理紀錄（引擎、檢索、AI 提示）</summary><pre>${esc(view.prompt||'')}</pre></details>`;
     const c = cur(), tools = $('[data-tools]', p);
     const hasTable = arr(c?.tables).some(t=>t.rows.length) || arr(c?.sheets).some(s=>s.rows.length);
     tools.innerHTML = [
@@ -1659,7 +1478,7 @@ function exportWord(title, bodyHtml, filename){
   downloadBlob('\ufeff'+html, filename, 'application/msword');
 }
 function exportHTML(title, bodyHtml, filename){
-  downloadBlob(`<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${DOC_CSS}body{max-width:980px;margin:24px auto;padding:0 16px}</style></head><body><p style="color:#888;font-size:9pt">產出時間：${new Date().toLocaleString('zh-TW')}｜${CFG.mode==='mock'?'模擬資料':'模型 '+esc(CFG.model)}</p>${bodyHtml}</body></html>`, filename, 'text/html;charset=utf-8');
+  downloadBlob(`<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${DOC_CSS}body{max-width:980px;margin:24px auto;padding:0 16px}</style></head><body><p style="color:#888;font-size:9pt">產出時間：${new Date().toLocaleString('zh-TW')}｜${esc(AI.label())}</p>${bodyHtml}</body></html>`, filename, 'text/html;charset=utf-8');
 }
 function exportCSV(table, filename){
   const cell = v => { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
@@ -2139,97 +1958,687 @@ function bindPptEditor(body, view){
   view.syncText = () => { view.syncFromDom(); return view.text; };
 }
 
-/* ---------- 11. Mock Data（展示用，全部為虛構範例） ---------- */
-const MOCK_EXT = () => ({
-  lit:[
-    { id:'L1', title:'（範例文獻）Acoustic emission monitoring of buried pipelines: a review', year:2023, venue:'（範例期刊）', url:'', doi:null, authors:[] },
-    { id:'L2', title:'（範例文獻）Bayesian early-warning model for storage tank leak detection', year:2022, venue:'（範例期刊）', url:'', doi:null, authors:[] },
-    { id:'L3', title:'（範例文獻）Cost analysis of non-destructive testing for transfer piping', year:2021, venue:'（範例期刊）', url:'', doi:null, authors:[] }],
-  pool:[{ id:'E1', name:'（範例）王○○', inst:'○○大學環境工程學系', url:'', works:['L1','L2'] },{ id:'E2', name:'（範例）陳○○', inst:'○○大學機械工程學系', url:'', works:['L3'] }],
-  errors:[]
-});
-const MOCK = {
-form_ocr: () => ({
-  forms:[{ title:'現場紀錄表（範例）', source:'IMG1', blocks:[
-    { type:'heading', text:'一、基本資料' },
-    { type:'fields', columns:2, items:[
-      {label:'場址名稱',value:'○○工業區 A 場址',unit:null,confidence:'高',source:'IMG1'},{label:'日期',value:'115/10/02',unit:null,confidence:'高',source:'IMG1'},
-      {label:'設備編號',value:'P-03',unit:null,confidence:'高',source:'IMG1'},{label:'管線長度',value:'2951',unit:'m',confidence:'中',source:'IMG1'},
-      {label:'設置年份',value:'1982',unit:null,confidence:'高',source:'IMG1'},{label:'管徑',value:'12(?)',unit:'吋',confidence:'低',source:'IMG1'}]},
-    { type:'checklist', title:'評估結果', items:[{label:'密切關注',checked:false},{label:'定期追蹤',checked:false},{label:'自主管理',checked:true}] },
-    { type:'heading', text:'二、現場量測' },
-    { type:'table', title:'', columns:['時間','量測點','讀值(ppmV)','備註'], rows:[['10:05','A1','12','—'],['10:15','A2','35','—'],['10:25','A3','128','需複測']] },
-    { type:'note', text:'手寫：A3 位於閥件旁，建議複測。' },
-    { type:'signature', items:[{role:'事業單位',name:'（簽名無法辨識）',date:''},{role:'執行單位',name:'',date:''}] }]}],
-  summary:{ title:'表 4-1 現場紀錄彙整表（範例）', columns:['設備編號','設置年份','管線長度(m)','管徑(吋)','評估結果','量測時間','量測點','讀值(ppmV)','備註'],
-    rows:[['P-03','1982','2951','12(?)','自主管理','10:05','A1','12','—'],['','','','','','10:15','A2','35','—'],['','','','','','10:25','A3','128','需複測']],
-    notes:['日期：115/10/02','A3 位於閥件旁，建議複測（手寫）']},
-  report_markdown:'## 一、工作概述\n本次於 115/10/02 辦理 ○○工業區 A 場址 P-03 輸送設備現場評估（範例）。\n## 二、契約依據\n依契約工作項目辦理輸送設備檢測技術試點 [S1]。\n## 三、執行內容與方法\n依評估篩選表逐項記錄設備基本資料，並於 3 個量測點量測 [S2]。\n## 四、成果數據\nA3 讀值 128 ppmV 高於其他點位（詳表 4-1）。\n## 五、契約符合情形\n| 契約要求 | 現場執行情形 | 符合情形 | 來源 |\n|---|---|---|---|\n| 辦理試點檢測 | 已完成 P-03 評估 | 符合 | S1 |\n## 六、異常與待確認事項\n- 管徑字跡不清（12 吋?），待確認。\n- A3 建議複測。',
-  contract_matrix:[{clause:'工作項目',requirement:'辦理輸送設備檢測技術試點',field_evidence:'完成 P-03 現場評估',status:'符合',source:'S1,IMG1'}],
-  issues:[{field:'管徑',problem:'手寫 12 或 17 無法確定',suggestion:'比對設備圖說'}],
-  warnings:['此為模擬資料，非實際辨識結果。'] }),
-progress_check: () => ({
-  nonconformities:[{item:'試點數量',basis:'工作計畫：試點 30 處',finding:'報告統計至 8 月完成 1 處',severity:'高',source:'S2,S7'},{item:'數值前後不一致',basis:'摘要與結論應一致',finding:'摘要 6,870 筆、結論 10,144 筆',severity:'中',source:'S3,S9'}],
-  todos:[{task:'完成其餘試點並建立技術指引',owner:'廠商',due:'115/12/31',priority:'高',source:'S7'},{task:'確認黃標待確認數字',owner:'廠商',due:null,priority:'中',source:'S9'}],
-  checkpoints:[{node:'決標／履約起始',planned:'115/01/01',actual:'115/01/01',status:'已完成',source:'S1'},{node:'期中報告',planned:null,actual:null,status:'未查證',source:''},{node:'履約期限',planned:'115/12/31',actual:null,status:'進行中',source:'S1'}],
-  completion:[{item:'申報資料勾稽',required:'3 次',done:'3 次',status:'符合',source:'S2'},{item:'法規宣導會',required:'（資料未提供）',done:'3 場次',status:'未提及',source:'S4'}],
-  warnings:['此為模擬資料。'] }),
-quality_check: () => ({ overview:'章節完整，但摘要、結果與結論之數字及年份前後不一致（範例）。',
-  typos:[{location:'結果 vs 結論',original:'115年10月27日 vs 114年10月27日',suggestion:'確認滲透測試年份並統一',type:'日期一致性',source:'S4,S8'},{location:'結果',original:'完成205處',suggestion:'結論為 318 處，請確認',type:'數值一致性',source:'S4,S8'},{location:'建議事項',original:'〔綠標〕…〔/綠標〕',suggestion:'更新後移除標示',type:'待確認標記',source:'S9'}],
-  compliance:[{plan_item:'勾稽、查核及管制追蹤',report_section:'結論一',status:'符合',note:'—',source:'S3'},{plan_item:'輸送設備檢測技術試點',report_section:'結論三',status:'部分符合',note:'試點數量待確認',source:'S5'}],
-  warnings:['此為模擬資料。'] }),
-review_qa: () => ({ qa:[
-  {category:'方法與數據',question:'試點名單篩選依據為何？是否具代表性？',answer:'感謝委員意見。試點名單依業別、使用型態、風險程度分層篩選，已補充於第〔○〕章。',adjustment:'新增分層抽樣表與篩選條件說明',priority:'高',predicted:true,source:'S5'},
-  {category:'契約符合性',question:'摘要與結論數字不一致，請確認。',answer:'感謝委員意見。已全面核對並統一數字。',adjustment:'統一摘要、結果、結論之數據',priority:'高',predicted:true,source:'S3,S9'}],
-  other_qa:[{question:'貝氏機率模型的先驗機率如何設定？',answer:'依歷年監測申報結果之異常比例設定，詳第〔○〕章。',source:'S7'}],
-  warnings:['此為模擬資料。'] }),
-apa: () => ({ references:[
-  {apa:'〔缺：作者〕（〔缺：年〕）。土壤及地下水油品污染溯源發展計畫。〔缺：出版者〕。',in_text:'(〔缺〕, 〔缺〕)',type:'報告',doi_url:null,verified:'未查證',source:'S3'},
-  {apa:'〔缺：作者〕（〔缺：年〕）。應用環境法醫技術建立市售柴油指紋圖譜調查計畫。〔缺：出版者〕。',in_text:'(〔缺〕, 〔缺〕)',type:'報告',doi_url:null,verified:'未查證',source:'S3'}],
-  issues:['報告引用之計畫名稱未附年份與出版者（範例）'], warnings:['此為模擬資料。'] }),
-proposal: () => ({ title:'○○計畫 服務建議書（範例）', template_used:false,
-  toc:[{no:'壹',heading:'計畫緣起與目標',level:1},{no:'一',heading:'計畫緣起',level:2},{no:'二',heading:'計畫目標',level:2},{no:'貳',heading:'工作項目與執行方法',level:1},{no:'參',heading:'工作期程與人力配置',level:1},{no:'肆',heading:'經費概算',level:1}],
-  sections:[{no:'壹',heading:'計畫緣起與目標',content_markdown:'延續前期成果 [S2]，本期目標：發展監測預警管理模式並整合資訊系統。'},{no:'貳',heading:'工作項目與執行方法',content_markdown:'### 監測預警管理模式\n以監測數據趨勢篩選異常對象 [S4]。\n### 資訊系統整合\n【待補】'},{no:'肆',heading:'經費概算',content_markdown:'【待補】依機關酬金基準編列。'}],
-  requirement_map:[{requirement:'勾稽申報資料',section:'貳',source:'S1'},{requirement:'整合資訊系統',section:'貳',source:'S1'}],
-  warnings:['此為模擬資料；未提供 Proposal 範本，採通用架構。'] }),
-ppt: () => ({ theme:{primary:'#1E3A8A',accent:'#0EA5E9',font:'Microsoft JhengHei'}, slides:[
-  {type:'cover',title:'○○管理計畫',subtitle:'工作重點說明（範例）',notes:'開場'},
-  {type:'kpi',title:'前期關鍵成果',kpis:[{value:'99.7%',label:'申報妥善率'},{value:'95.7%',label:'抽檢合格率'},{value:'3 場',label:'法規宣導會'}],takeaway:'前期工作如期推進',notes:'',source:'S2'},
-  {type:'cards',title:'本期工作重點',cards:[{title:'強化預防管理',text:'勾稽申報資料並追蹤異常'},{title:'監測預警模式',text:'以趨勢篩選具異常對象'},{title:'整合資訊系統',text:'容器化逐步整併'}],takeaway:'三大主軸延續並升級',notes:'',source:'S4'},
-  {type:'timeline',title:'系統整合期程',steps:[{label:'短期',text:'評估模組化可行性'},{label:'中期',text:'建立新系統並整併'},{label:'長期',text:'新舊資料切換'}],takeaway:'先建後拆，降低風險',notes:''},
-  {type:'compare',title:'與前期差異',left:{title:'前期',bullets:['12 個月','落實申報管理']},right:{title:'本期',bullets:['24 個月','發展預警模式']},takeaway:'由管理走向預警',notes:''},
-  {type:'table',title:'經費概算（範例）',table:{columns:['項目','金額(元)'],rows:[['人事費','（範例）'],['業務費','（範例）']]},takeaway:'',notes:''},
-  {type:'bullets',title:'後續工作',bullets:['完成試點與技術指引','輔導自主預防計畫','回饋法規修正'],takeaway:'',notes:''},
-  {type:'closing',title:'感謝聆聽',subtitle:'Q & A',notes:''}], warnings:['此為模擬資料。'] }),
-tender: () => ({ project_name:'○○管理計畫委託專業服務案（範例）',
-  tender_markdown:'## 一、計畫緣起\n延續前期成果 [S1]，辦理下一期計畫。\n## 二、工作項目與規格\n1. 監測申報管理及抽檢\n2. 監測預警管理模式\n3. 整合相關資訊系統\n## 三、履約期限與查核點\n- 履約期限：〔依機關需求〕\n- 期中報告：〔○〕\n## 四、評選項目建議\n| 評選項目 | 配分 |\n|---|---|\n| 執行方法與可行性 | 35 |\n| 團隊經驗 | 25 |\n| 期程與品管 | 20 |\n| 經費合理性 | 10 |\n| 簡報答詢 | 10 |',
-  feasibility:[
-    {work_item:'1. 監測申報管理及抽檢',description:'勾稽申報資料、追蹤異常',budget_ntd:2800000,budget_basis:'參照前期同類工項（範例）',budget_sources:['S3'],literature:['L2','S1'],schedule:'第 M1–M24 月',person_months:18.0,pm_basis:'工程師 1.5 人 × 12 月',verified:'推估'},
-    {work_item:'2. 監測預警管理模式',description:'建立貝氏機率預警模型',budget_ntd:1500000,budget_basis:'模型開發人月 × 月薪（範例）',budget_sources:['S5'],literature:['L2'],schedule:'第 M3–M18 月',person_months:9.5,pm_basis:'2 人 × 4.75 月',verified:'推估'},
-    {work_item:'3. 整合相關資訊系統',description:'模組化評估與網站原型',budget_ntd:null,budget_basis:'需依機關或公會酬金基準補入',budget_sources:[],literature:['L3'],schedule:'第 M1–M24 月',person_months:12.0,pm_basis:'系統工程師 1 人 × 12 月',verified:'未查證'}],
-  totals:{budget_ntd:null,months:24,person_months:39.5},
-  feasibility_summary:{technical:'前期已累積申報與抽檢資料，可支撐預警模型（L2）。',budget:'工項 3 經費待依酬金基準補入。',schedule:'24 個月可完成，系統整合需分階段。'},
-  committee:[
-    {name:'（範例）王○○',org:'○○大學環境工程學系',title:'教授',expertise:'土壤及地下水污染預防',profile_url:null,pool_id:'E1',style_note:'研究聚焦監測技術，審查可能關注數據品質與模型驗證。',reputation_note:'L1、L2 為其相關著作（範例）',suitability:'高：專業與本案直接相關',conflict_check:'需查核是否參與前期計畫',source:'E1,L1'},
-    {name:'（範例）陳○○',org:'○○大學機械工程學系',title:'副教授',expertise:'非破壞檢測',profile_url:null,pool_id:'E2',style_note:'著重檢測技術可行性與成本。',reputation_note:null,suitability:'中：專業相關，但非環境管理',conflict_check:'需查核',source:'E2,L3'},
-    {name:'（待填：資訊系統專長委員）',org:null,title:null,expertise:'資訊系統整合與資安',profile_url:null,pool_id:null,style_note:'公開資料未見',reputation_note:null,suitability:'高：需補足系統整合審查面向',conflict_check:'需查核',source:''}],
-  assumptions:['經費以前期同類工項推估，正式預算需依機關酬金基準重新編列'],
-  warnings:['此為模擬資料，文獻、人名與金額皆為虛構範例。'] }),
-gov_committee: () => ({ qa:[
-  {category:'經費合理性',question:'資訊系統費占比偏高，依據為何？',answer:'感謝委員意見。資訊系統費依整合範圍與人月估算，明細詳第〔○〕章。',adjustment:'經費表增列系統整合人月與單價依據',priority:'高',predicted:true,source:'S5'},
-  {category:'期程可行性',question:'系統整合長期規劃已超出本期期程，本期交付為何？',answer:'感謝委員意見。本期交付相容性評估與網站原型。',adjustment:'明確界定本期交付成果',priority:'高',predicted:true,source:'S4'}],
-  other_qa:[{question:'預警模型如何驗證？',answer:'以歷年申報與抽檢結果回測。',source:'S5'}],
-  warnings:['此為模擬資料；預測意見非實際委員意見。'] })
+
+/* ---------- R. 規則引擎：直接由上傳文件擷取、比對、計算 ---------- */
+const readyDocs = (zone, roles) => STATE.docs[zone].filter(d=>d.status==='ready' && d.text && (!roles || roles.includes(d.role)));
+const docsText = docs => docs.map(d=>d.text).join('\n\n');
+const srcTag = (doc) => doc.name;
+
+/* R1. 表單結構化：依版面列／欄重建表單 blocks（標題、欄位、表格、勾選、備註、簽名） */
+function linesOfDoc(doc){
+  if(doc.pages) return doc.pages.map(p=>({ page:p.page, lines:p.lines.map(l=>({ cells:l.cells, conf:l.conf })) }));
+  const pages = []; let cur = { page:1, lines:[] };
+  for(const raw of doc.text.split('\n')){
+    const t = raw.trim(); if(!t || t==='[表格]' || t==='[/表格]') continue;
+    const pm = t.match(/^【(?:第|工作表|表|投影片)\s*(.+?)\s*(?:頁)?】$/); if(pm){ if(cur.lines.length) pages.push(cur); cur = { page:pm[1], lines:[] }; continue; }
+    let cells;
+    if(/^\|.*\|$/.test(t)) cells = t.replace(/^\||\|$/g,'').split('|').map(s=>s.trim());
+    else if(/\t/.test(t)) cells = t.split(/\t+/).map(s=>s.trim());
+    else if(/^[^,]*(,[^,]*){2,}$/.test(t) && /\.(csv|xls|xlsx|ods|et)$/i.test(doc.name)) cells = parseCsvLine(t);
+    else cells = [t];
+    while(cells.length > 1 && !cells[cells.length-1]) cells.pop();
+    cur.lines.push({ cells, conf:100 });
+  }
+  if(cur.lines.length) pages.push(cur);
+  return pages;
+}
+function parseCsvLine(s){ const out = []; let cur = '', q = false; for(let i=0;i<s.length;i++){ const c = s[i]; if(q){ if(c==='"'){ if(s[i+1]==='"'){ cur += '"'; i++; } else q = false; } else cur += c; } else if(c==='"') q = true; else if(c===','){ out.push(cur.trim()); cur = ''; } else cur += c; } out.push(cur.trim()); return out; }
+const confLevel = c => c >= 80 ? '高' : c >= 60 ? '中' : '低';
+const CHECK_ON = /[■☑☒✓✔▣◼●]/, CHECK_ANY = /[■☑☒✓✔▣◼□☐○●]/;
+function isLabelish(s){ s = String(s||'').trim(); return s.length >= 1 && s.length <= 14 && !/\d{3,}/.test(s) && CJK.test(s) && !/[。，；]/.test(s); }
+function formFromDoc(doc){
+  const forms = [];
+  for(const pg of linesOfDoc(doc)){
+    const blocks = []; let tbl = null, title = '';
+    const flushTbl = () => { if(!tbl) return; const rows = tbl.rows; let cols;
+      const hdrLike = rows[0].every(c=>!/^\s*-?\d[\d,.]*\s*$/.test(c)) && rows.length > 1;
+      if(hdrLike){ cols = rows[0]; tbl.rows = rows.slice(1); } else cols = rows[0].map((_,i)=>'欄'+(i+1));
+      const w = Math.max(cols.length, ...tbl.rows.map(r=>r.length)); while(cols.length < w) cols.push('欄'+(cols.length+1));
+      blocks.push({ type:'table', title:'', columns:cols, rows:tbl.rows.map(r=>{ const x = r.slice(); while(x.length < w) x.push(''); return x; }) }); tbl = null; };
+    const L = pg.lines;
+    for(let li=0; li<L.length; li++){ const ln = L[li];
+      const cells = ln.cells.map(c=>String(c).trim()).filter((c,i,a)=>c || i < a.length-1);
+      const joined = cells.join(' ');
+      if(!joined.replace(/[\s|]/g,'')) continue;
+      if(!title && cells.length===1 && joined.length <= 40 && !/[：:]/.test(joined)){ title = joined; continue; }
+      if(CHECK_ANY.test(joined) && (joined.match(new RegExp(CHECK_ANY.source,'g'))||[]).length >= 1 && cells.length <= 3){
+        flushTbl();
+        const items = []; for(const m of joined.matchAll(/([■☑☒✓✔▣◼□☐○●])\s*([^■☑☒✓✔▣◼□☐○●]+)/g)) items.push({ label:m[2].trim(), checked:CHECK_ON.test(m[1]) });
+        const lead = joined.split(CHECK_ANY)[0].replace(/[：:]\s*$/,'').trim();
+        if(items.length){ blocks.push({ type:'checklist', title:lead, items }); continue; }
+      }
+      if(/^(簽名|簽章|簽核|簽認|核章)|(簽名|簽章)[：:]/.test(joined) && cells.length <= 6){ flushTbl(); const it = []; for(let i=0;i<cells.length;i+=2) it.push({ role:cells[i].replace(/[：:]$/,''), name:cells[i+1]||'', date:'' }); blocks.push({ type:'signature', items:it }); continue; }
+      const kvInline = cells.length===1 ? [...joined.matchAll(/([^\s：:|]{1,14})\s*[：:]\s*([^：:]+?)(?=\s+[^\s：:|]{1,14}\s*[：:]|$)/g)] : [];
+      const nx = L[li+1] ? L[li+1].cells.filter(Boolean) : [];
+      const headerAhead = !tbl && cells.length >= 3 && Math.abs(nx.length - cells.length) <= 1 && nx.filter(c=>/\d/.test(c)).length >= 2 && cells.every(c=>!/\d{2,}/.test(c));
+      if(headerAhead){ flushTbl(); tbl = { rows:[cells] }; continue; }
+      const pairCells = cells.length >= 2 && cells.length <= 8 && cells.length % 2 === 0 && cells.filter((c,i)=>i%2===0).every(isLabelish) && !tbl;
+      if(kvInline.length){ flushTbl(); const items = kvInline.map(m=>({ label:m[1], value:m[2].trim(), unit:null, confidence:confLevel(ln.conf), source:srcTag(doc) })); pushFields(blocks, items, Math.min(4, items.length)); continue; }
+      if(pairCells){ const items = []; for(let i=0;i<cells.length;i+=2) items.push({ label:cells[i].replace(/[：:]$/,''), value:cells[i+1], unit:null, confidence:confLevel(ln.conf), source:srcTag(doc) }); pushFields(blocks, items, items.length); continue; }
+      if(cells.length >= 3 || (cells.length===2 && tbl)){ if(!tbl) tbl = { rows:[] }; tbl.rows.push(cells); continue; }
+      flushTbl();
+      if(cells.length===2){ pushFields(blocks, [{ label:cells[0].replace(/[：:]$/,''), value:cells[1], unit:null, confidence:confLevel(ln.conf), source:srcTag(doc) }], 1); continue; }
+      if(headingLevel(joined) || (joined.length <= 24 && /^[一二三四五六七八九十]+、/.test(joined))){ blocks.push({ type:'heading', text:joined }); continue; }
+      blocks.push({ type:'note', text:joined + (ln.conf < 60 ? '（辨識信心低）' : '') });
+    }
+    flushTbl();
+    forms.push({ title: title || doc.name.replace(/\.[^.]+$/,''), source: `${doc.name}${pg.page!=null?'・'+pg.page:''}`, blocks, ocr: !!doc.ocr });
+  }
+  return forms.filter(f=>f.blocks.length);
+}
+function pushFields(blocks, items, cols){ const last = blocks[blocks.length-1]; if(last && last.type==='fields' && last.columns===cols){ last.items.push(...items); } else blocks.push({ type:'fields', columns:Math.max(1, Math.min(4, cols)), items }); }
+
+/** 摘要表：所有表格依欄位合併為主表；所有欄位與備註整理成「基本資料／說明」表，確保不遺漏 */
+function summaryFromForms(forms){
+  const groups = [];
+  forms.forEach(f=>arr(f.blocks).filter(b=>b.type==='table').forEach(b=>{
+    const key = b.columns.join('|'); let g = groups.find(x=>x.key===key || jacc(x.cols.join(''), b.columns.join('')) > .7);
+    if(!g){ g = { key, cols:b.columns.slice(), rows:[], srcs:new Set() }; groups.push(g); }
+    b.rows.forEach(r=>g.rows.push([f.title, ...r])); g.srcs.add(f.source);
+  }));
+  const tables = groups.map((g,i)=>({ title:`表 ${i+1}　${g.cols.slice(0,3).join('、')}${g.cols.length>3?'等':''}彙整`, columns:['來源表單', ...g.cols], rows:g.rows }));
+  const kv = [];
+  forms.forEach(f=>arr(f.blocks).forEach(b=>{
+    if(b.type==='fields') b.items.forEach(it=>kv.push([f.title, it.label, `${it.value??''}${it.unit?' '+it.unit:''}`, it.confidence||'']));
+    if(b.type==='checklist') kv.push([f.title, b.title || '勾選項目', b.items.map(i=>(i.checked?'☑':'☐')+i.label).join('　'), '']);
+    if(b.type==='signature') b.items.forEach(s=>kv.push([f.title, s.role, [s.name, s.date].filter(Boolean).join(' '), '']));
+  }));
+  if(kv.length) tables.unshift({ title:`表 0　表單基本資料彙整`, columns:['來源表單','項目','內容','辨識信心'], rows:kv });
+  tables.forEach((t,i)=>t.title = t.title.replace(/^表 \d+/, '表 '+(i+1)));
+  const notes = []; forms.forEach(f=>arr(f.blocks).filter(b=>b.type==='note').forEach(b=>notes.push(`${f.title}：${b.text}`)));
+  return { title:'現場紀錄摘要表', tables, notes };
+}
+function contractRequirements(docs){
+  const out = [];
+  docs.forEach(d=>splitSentences(stripMarks(d.text)).forEach(s=>{
+    if(s.length < 8 || s.length > 220) return;
+    if(/(應(?!用|變|對)|須|(?<!所)需(?!求)|辦理|工作項目|工作內容|履約|提送|交付|完成|規格|頻率|每[季月年週]|不得少於|至少)/.test(s) && !/^(列印時間|頁次)/.test(s)) out.push({ text:s, doc:d.name });
+  }));
+  const seen = new Set(); return out.filter(r=>{ const k = r.text.replace(/\s/g,'').slice(0,30); if(seen.has(k)) return false; seen.add(k); return true; }).slice(0, 80);
+}
+function reportFromForms(forms, summary, contractDocs, hint){
+  const allFields = forms.flatMap(f=>arr(f.blocks).filter(b=>b.type==='fields').flatMap(b=>b.items));
+  const pick = re => allFields.filter(it=>re.test(it.label)).map(it=>it.value).filter(Boolean);
+  const dates = [...new Set(pick(/日期|時間|年月日/))], places = [...new Set(pick(/名稱|場址|地點|地址|事業|單位/))], persons = [...new Set(pick(/聯絡人|人員|負責|承辦|採樣|檢測/))];
+  const formText = forms.map(f=>formToRows(f).map(r=>r.join(' ')).join('\n')).join('\n');
+  const reqs = contractRequirements(contractDocs);
+  const fb = bigrams(formText);
+  const matrix = reqs.map(r=>({ r, s:cover(r.text, fb) })).filter(x=>x.s > .2).sort((a,b)=>b.s-a.s).slice(0,8)
+    .map(x=>({ clause:x.r.doc, requirement:x.r.text, field_evidence:x.s > .5 ? '現場紀錄有對應內容（關鍵詞重疊 '+Math.round(x.s*100)+'%）' : '部分關鍵詞對應（'+Math.round(x.s*100)+'%），請人工確認', status:x.s > .5 ? '符合' : '部分符合', source:x.r.doc }));
+  const low = allFields.filter(it=>it.confidence==='低' || /\(\?\)|？/.test(it.value||''));
+  const t = summary.tables, nRows = t.reduce((a,x)=>a+x.rows.length,0);
+  let md = `## 一、工作概述\n`;
+  md += `${dates.length?`日期：${dates.join('、')}。`:'日期：（資料未提供）。'}${places.length?`對象／地點：${places.slice(0,4).join('、')}。`:''}${persons.length?`人員：${persons.slice(0,4).join('、')}。`:''}\n`;
+  if(hint) md += `\n現場工作說明：${hint}\n`;
+  md += `\n本次共電子化 ${forms.length} 份表單，整理為 ${t.length} 張摘要表、合計 ${nRows} 筆紀錄。\n`;
+  md += `## 二、契約依據\n`;
+  if(!contractDocs.length) md += `未提供契約文件。\n`;
+  else if(!matrix.length) md += `已上傳契約文件，但未比對到與本次現場紀錄直接相關的條文，請人工確認。\n`;
+  else matrix.slice(0,4).forEach(m=>{ md += `- ${m.requirement}（${m.source}）\n`; });
+  md += `## 三、執行內容與方法\n`;
+  forms.forEach(f=>{ const hs = arr(f.blocks).filter(b=>b.type==='heading').map(b=>b.text); md += `- ${f.title}${hs.length?'：'+hs.join('、'):''}\n`; });
+  md += `## 四、成果數據\n`;
+  t.forEach(x=>{ md += `- ${x.title}：${x.rows.length} 筆（欄位：${x.columns.slice(1).join('、')}）\n`; });
+  md += `## 五、契約符合情形\n`;
+  if(matrix.length){ md += `| 契約要求 | 現場執行情形 | 符合情形 | 來源 |\n|---|---|---|---|\n`; matrix.forEach(m=>{ md += `| ${m.requirement.replace(/\|/g,'／').slice(0,80)} | ${m.field_evidence} | ${m.status} | ${m.source} |\n`; }); }
+  else md += `（無可自動比對之契約條文）\n`;
+  md += `## 六、異常與待確認事項\n`;
+  if(low.length) low.slice(0,20).forEach(it=>{ md += `- ${it.label}：「${it.value}」辨識信心低，請對照原件確認。\n`; });
+  else md += `- 未偵測到低信心欄位；仍建議與原件逐項核對。\n`;
+  return { md, matrix, issues: low.map(it=>({ field:it.label, problem:`辨識信心低：「${it.value}」`, suggestion:'對照原件確認' })) };
+}
+
+/* R2. 進度／驗收檢核 */
+function analyzeProgress(docs){
+  const base = docs.filter(d=>/招標|契約|工作計畫|需求/.test(d.role)), reps = docs.filter(d=>/報告/.test(d.role)), today = new Date();
+  const repText = docsText(reps), repSents = reps.flatMap(d=>splitSentences(d.text).map(s=>({ s, d })));
+  // 1) 數量要求比對
+  const completion = [], seen = new Set();
+  base.forEach(d=>findQuantities(stripMarks(d.text)).forEach(q=>{
+    if(/^(第|共|約|計|於|在)$/.test(q.key) || ['個月','月','天','日曆天','工作天','%'].includes(q.unit)) return;
+    if((q.key+q.after).length < 2) return; const k = q.key.slice(-6)+q.unit+q.after.slice(0,4); if(seen.has(k)) return; seen.add(k);
+    const kb = bigrams(q.key+q.after), found = [];
+    reps.forEach(r=>findQuantities(stripMarks(r.text)).forEach(x=>{ if(x.unit===q.unit && cover(kb, bigrams(x.key+x.after)) >= .5) found.push({ ...x, loc:locate(r, x.idx) }); }));
+    const best = found.sort((a,b)=>b.v-a.v)[0];
+    const status = !best ? '未提及' : best.v >= q.v ? '符合' : '部分符合';
+    completion.push({ item:(q.key+'…'+q.after).replace(/^…|…$/g,''), required:`${q.v.toLocaleString()} ${q.unit}`, done: best ? `${best.v.toLocaleString()} ${best.unit}（${best.loc}）` : '（報告未提及）', status, source:`${d.name}${best?'；'+best.loc:''}`, _gap: best ? q.v-best.v : q.v, _unit:q.unit });
+  }));
+  // 2) 期程節點
+  const checkpoints = [], kwRe = /(期初|期中|期末|履約|截止|截標|開標|決標|查核|提送|繳交|交付|驗收|完成|起|止|期限|審查)/;
+  base.forEach(d=>splitSentences(d.text).forEach(s=>{ if(!kwRe.test(s)) return; findDates(s).forEach(dt=>{
+    const node = s.replace(/\s+/g,' ').slice(0,60);
+    const key = (s.match(kwRe)||[''])[0], ev = repSents.find(x=>x.s.includes(key) && findDates(x.s).length && jacc(x.s, s) > .15 && /(完成|已|提送|辦理|召開)/.test(x.s));
+    const act = ev ? findDates(ev.s)[0] : null;
+    const status = act ? '已完成' : dt.d < today ? '逾期' : '未開始';
+    checkpoints.push({ node, planned:fmtROC(dt.d), actual: act ? `${fmtROC(act.d)}（${ev.d.name}）` : null, status: act ? status : (dt.d < today ? '逾期（報告未見佐證）' : '未開始'), source:d.name, _d:dt.d });
+  }); }));
+  checkpoints.sort((a,b)=>a._d-b._d);
+  const uniqCP = []; checkpoints.forEach(c=>{ if(!uniqCP.some(x=>x.planned===c.planned && jacc(x.node, c.node) > .5)) uniqCP.push(c); });
+  // 3) 報告內部數值／日期前後不一致
+  const incons = inconsistencies(reps);
+  // 4) 螢光標記
+  const marks = reps.concat(base).flatMap(d=>findMarks(d));
+  const nonconformities = [
+    ...completion.filter(c=>c.status!=='符合').map(c=>({ item:c.item, basis:`契約／計畫要求 ${c.required}`, finding: c.status==='未提及' ? '報告未提及此數量' : `報告為 ${c.done}，尚差 ${c._gap.toLocaleString()} ${c._unit}`, severity: c.status==='未提及' ? '高' : '中', source:c.source })),
+    ...incons.map(x=>({ item:'數值／日期前後不一致', basis:x.key, finding:x.desc, severity:'中', source:x.locs.join('；') })),
+    ...uniqCP.filter(c=>/逾期/.test(c.status)).map(c=>({ item:'期程節點', basis:`${c.node}（預定 ${c.planned}）`, finding:'已過預定日期，上傳報告未見完成佐證', severity:'高', source:c.source }))
+  ];
+  const todos = [
+    ...marks.map(m=>({ task:`${m.kind==='綠標'?'更新':'確認'}：${m.text.slice(0,60)}`, owner:'廠商', due:null, priority:m.kind==='黃標'?'高':'中', source:m.loc })),
+    ...completion.filter(c=>c.status!=='符合').map(c=>({ task:`補足「${c.item}」：要求 ${c.required}`, owner:'廠商', due:null, priority:'高', source:c.source })),
+    ...uniqCP.filter(c=>c.status==='未開始').map(c=>({ task:c.node, owner:'廠商', due:c.planned, priority:'中', source:c.source }))
+  ];
+  return { nonconformities, todos, checkpoints:uniqCP.map(({_d,...c})=>c), completion:completion.map(({_gap,_unit,...c})=>c), marks, incons,
+    warnings: [!base.length ? '未標記「招標契約／工作計畫書」類文件，數量與期程基準不足。' : '', !reps.length ? '未標記「進度報告」類文件。' : ''].filter(Boolean) };
+}
+/** 同一事項在不同處出現不同數字或日期 */
+function inconsistencies(docs){
+  const items = [];
+  docs.forEach(d=>{ const t = stripMarks(d.text);
+    findQuantities(t).forEach(q=>{ const c = q.key.slice(-8)+'|'+q.after; if(c.length >= 4) items.push({ key:(q.key.slice(-8)+'…'+q.after.slice(0,8)).replace(/^…|…$/g,''), sig:c, unit:q.unit, val:q.v.toLocaleString()+q.unit, loc:locate(d, q.idx) }); });
+    findDates(t).forEach(dt=>{ let pre = t.slice(Math.max(0, dt.idx-20), dt.idx); const cut = pre.search(/[。；，,、\n][^。；，,、\n]*$/); if(cut >= 0) pre = pre.slice(cut+1); pre = pre.replace(/[^\u3400-\u9fffA-Za-z]/g,'');
+      const post = t.slice(dt.idx+dt.raw.length, dt.idx+dt.raw.length+12).split(/[。；，,\n]/)[0].replace(/[^\u3400-\u9fffA-Za-z]/g,'');
+      if((pre+post).length >= 4) items.push({ key:(pre.slice(-8)+'…'+post.slice(0,8)).replace(/^…|…$/g,''), sig:pre.slice(-8)+'|'+post, unit:'日期', val:fmtROC(dt.d), loc:locate(d, dt.idx) }); });
+  });
+  const out = [], used = new Set();
+  for(let i=0;i<items.length;i++){ if(used.has(i)) continue; const a = items[i]; const grp = [a];
+    for(let j=i+1;j<items.length;j++){ const b = items[j]; if(used.has(j) || b.unit!==a.unit) continue; if(jacc(a.sig, b.sig) >= .5){ grp.push(b); used.add(j); } }
+    const vals = [...new Set(grp.map(g=>g.val))];
+    if(vals.length > 1 && grp.length <= 8){ const seenV = new Set(), shown = grp.filter(g=>{ const k = g.val+g.loc; if(seenV.has(k)) return false; seenV.add(k); return true; }); out.push({ key:`「${a.key}」`, desc:shown.map(g=>`${g.val}（${g.loc}）`).join(' vs '), locs:[...new Set(grp.map(g=>g.loc))], vals }); }
+  }
+  return out.slice(0, 40);
+}
+
+/* R3. 報告品質檢核 */
+const TYPO_DICT = [['數据','數據'],['据此','據此'],['依据','依據'],['根据','根據'],['監側','監測'],['側試','測試'],['偵側','偵測'],['量側','量測'],['以經','已經'],['在次','再次'],['再於','在於'],['必需','必須'],['做為','作為'],['帳號','帳號'],['既使','即使'],['因該','應該'],['反應意見','反映意見'],['佈置','布置'],['紀綠','紀錄'],['記綠','紀錄'],['部份','部分'],['那些','哪些'],['迄今為止','迄今'],['分佈','分布'],['公佈','公布'],['週期','週期'],['陸續地','陸續'],['截至目前為止','截至目前'],['重覆','重複'],['複查覆核','複查'],['合計共','合計'],['甚致','甚至'],['渲染','渲染'],['污染物質','污染物'],['檢查核','檢核']].filter(p=>p[0]!==p[1]);
+const TERM_PAIRS = [['台','臺'],['監測','監控'],['紀錄','記錄'],['佈','布'],['裡','裏'],['週','周'],['帳','賬'],['污','汙']];
+const SIMP = '们这个说时国会对发经过还进现开关问题实际数测试资计报设备检规环处门车长见风东业专两严丧为举义乌乐习书买乱争亏亚产亩亲亿仅从仓仪众传伤伦伪侠侣侦侧侨俭债倾偿储兑兰兴养兽冈册写军农决况冻净减凑凤凭凯击创则刚删别剂剑剧劝办务动励劳势勋区华协单卖卢卫厅历压厌厕县参双变叠叶号叹吗启吴员呜响哑唤啰喷团园围图圆场块坚坛坝坟坠垄垒垦垫墙壮声壳头夹夺奋奖妆妇妈娱娄婴孙学宝宠审宪宫宽宾寻导寿将尔尘尝层属岁岂岗岛峡币师帐带帮库应废弃张弥弯强归当录彻径忆忧态总恋恳恶恼悦悬惧惨惩惫愤戏战户执扩扫扬抚抛抢护担拟拥拦拨择挚挤挥损换掳掷揽搀摄摆摇摊撑撵撷擞攒敌斋断无旧旷昙显晋晓晕暂术杀杂权条来杨枢枣枪栋栏树样档桥梦椭楼榄槛欢欧歼毁毕毙汇汉汤沟没沪泷泸泺泻泼泽浅浆浇浊济浏浑浓涛涝润涧涨涩渊渐渔渗温湾湿溃溅滚滞满滤滥滨滩潇潜澜灭灯灵灾灿炉炜点炼烂烛烦烧热焕爱爷牍牵犹狈独狭狮狱猎猪献玮珐琐琼瓒瓯电画畅畴疖疗疟疮疯痉瘪瘫癞皑皱盏监盖盘睁瞒矫矿码砖础硕碍碱礼祸禄积称稳穷窃窍窑窜竖竞笔笼筛签简箩粮紧纠红纤约级纪纬纯纱纳纵纷纸纹线练组绅细织终绍绑结绕绘给络绝统继绩绪续绳维绵综绿缀缓编缘缠缩缴罗罚罢翘耸耻聂聋职联肃肠肤肾肿胀胁胶脏脑脚脱舰艰艳艺节芜苇苍苏茎荡荣药莱莲获营萝萧萨蓝蔼虏虑虚虽蚀蚁蚂蛮蝇衅补衬袜袭装裤览觉誉订认讥讨让训议讯记讲讳许论访证评识诉诊词译诗诚话诞诡询该详诫语误诱请诸诺读课谁调谅谈谊谋谓谜谢谨谱谴贝贞负贡财责贤败账货质贩贪贫购贮贯贴贵贷贸费贺贼赋赌赏赔赖赚赛赞赠赢赵趋跃践踪躯输辈辉辑辖辩边辽达迁迈运远违连迟选逊递逻遗遥邓邮邻郑酝酱释鉴针钉钓钟钢钥钱铁铃铅铜铭铺链销锁锅锋错锡锦键镇镜闪闭闯闲间闷闹闻阀阁阅队阳阴阵阶陆陈陕险随隐隶难雾静靥鞑韦韧页顶项顺须顽顾顿颁颂预领颇频颗颜额飞饥饭饮饰饱饲饶馆马驰驱驳驾验骑骗骤髅鬓鱼鲁鲜鸟鸡鸣鸭鸽鹅鹤鹰麦黄齐齿龙龟';
+function analyzeQuality(docs, compliance){
+  const reps = docs.filter(d=>/報告/.test(d.role)), targets = reps.length ? reps : docs, typos = [];
+  targets.forEach(d=>{ const t = d.text;
+    TYPO_DICT.forEach(([w, r])=>{ let i = -1, n = 0; while((i = t.indexOf(w, i+1)) >= 0 && n < 5){ typos.push({ location:locate(d,i), original:t.slice(Math.max(0,i-8), i+w.length+8).replace(/\n/g,' '), suggestion:`「${w}」→「${r}」`, type:'錯字', source:d.name }); n++; } });
+    for(const m of t.matchAll(new RegExp('['+SIMP+']','g'))){ typos.push({ location:locate(d,m.index), original:t.slice(Math.max(0,m.index-8), m.index+8).replace(/\n/g,' '), suggestion:`「${m[0]}」疑為簡體字`, type:'錯字', source:d.name }); if(typos.length > 400) break; }
+    for(const m of t.matchAll(/([\u3400-\u9fff])\1/g)){ if(/[常漸慢稍個種處時人天年月日久紛往點些輕悄默偏剛僅屢頻往紛統緩匆隱層連絲綿]/.test(m[1])) continue; typos.push({ location:locate(d,m.index), original:t.slice(Math.max(0,m.index-6), m.index+8).replace(/\n/g,' '), suggestion:`疑似重複字「${m[0]}」`, type:'格式', source:d.name }); }
+    for(const m of t.matchAll(/[，。、；：]{2,}|[,，][。.]|（\s*）|\(\s*\)/g)) typos.push({ location:locate(d,m.index), original:t.slice(Math.max(0,m.index-8), m.index+8).replace(/\n/g,' '), suggestion:'標點重複或空括號', type:'格式', source:d.name });
+    for(const m of t.matchAll(/[\u3400-\u9fff],(?=[\u3400-\u9fff])/g)) typos.push({ location:locate(d,m.index), original:t.slice(Math.max(0,m.index-6), m.index+8).replace(/\n/g,' '), suggestion:'中文句中使用半形逗號，建議改全形「，」', type:'格式', source:d.name });
+    for(const m of t.matchAll(/[０-９]+/g)) typos.push({ location:locate(d,m.index), original:m[0], suggestion:'全形數字，建議統一半形', type:'格式', source:d.name });
+    TERM_PAIRS.forEach(([a,b])=>{ const na = (t.match(new RegExp(a,'g'))||[]).length, nb = (t.match(new RegExp(b,'g'))||[]).length; if(na && nb) typos.push({ location:d.name, original:`「${a}」${na} 次、「${b}」${nb} 次`, suggestion:`全文統一用字（建議擇一）`, type:'用語一致性', source:d.name }); });
+    const caps = {}; for(const m of t.matchAll(/([圖表])\s*(\d+(?:[-－.．]\d+)?)/g)){ const k = m[1]+m[2].replace(/[－．]/g,'-').replace('.','-'); caps[k] = (caps[k]||0)+1; }
+    Object.entries(caps).forEach(([k,n])=>{ if(n===1) typos.push({ location:d.name, original:k, suggestion:`${k} 僅出現一次：可能只有標題未被內文引用，或內文引用但缺圖表`, type:'圖表編號', source:d.name }); });
+    findMarks(d).forEach(m=>typos.push({ location:m.loc, original:m.text.slice(0,60), suggestion:`${m.kind}尚未處理（${m.kind==='黃標'?'待確認':m.kind==='綠標'?'待更新':'待處理'}）`, type:'待確認標記', source:d.name }));
+  });
+  inconsistencies(targets).forEach(x=>typos.push({ location:x.locs.join('；'), original:`${x.key}：${x.vals.join(' / ')}`, suggestion:`同一事項數值或日期不一致：${x.desc}`, type: /\d+\/\d+\/\d+/.test(x.vals[0]) ? '日期一致性' : '數值一致性', source:x.locs[0] }));
+  const seen = new Set(), uniq = typos.filter(x=>{ const k = x.type+x.location+x.original; if(seen.has(k)) return false; seen.add(k); return true; });
+  const cnt = {}; uniq.forEach(x=>cnt[x.type]=(cnt[x.type]||0)+1);
+  return { typos:uniq.slice(0, 600), compliance, overview:`規則檢核共發現 ${uniq.length} 項：${Object.entries(cnt).map(([k,v])=>`${k} ${v}`).join('、')||'無'}。${compliance.length?`計畫符合度比對 ${compliance.length} 項：符合 ${compliance.filter(c=>c.status==='符合').length}、部分符合 ${compliance.filter(c=>c.status==='部分符合').length}、缺漏 ${compliance.filter(c=>c.status==='缺漏').length}。`:''}` };
+}
+/** 契約／計畫要求 ↔ 報告章節比對（雙字詞覆蓋率） */
+function complianceMatrix(baseDocs, repDocs){
+  const reqs = contractRequirements(baseDocs).filter(r=>!/履約期限|決標次日|列印時間/.test(r.text)), secs = repDocs.flatMap(sectionsOf).map(s=>({ ...s, bg:bigrams(s.title+' '+s.text) }));
+  if(!secs.length) return [];
+  return reqs.slice(0, 40).map(r=>{ const rb = bigrams(r.text); let best = null, bs = 0; secs.forEach(s=>{ const v = cover(rb, s.bg); if(v > bs){ bs = v; best = s; } });
+    const status = bs >= .55 ? '符合' : bs >= .3 ? '部分符合' : '缺漏';
+    return { plan_item:r.text.slice(0,120), report_section: best ? `${best.doc.name}／${best.title.slice(0,30)}` : '（無）', status, note:`關鍵詞覆蓋率 ${Math.round(bs*100)}%（自動比對，需人工確認）`, source:r.doc };
+  });
+}
+
+/* R4. 委員意見（由檢核發現轉為可能意見與擬答） */
+function qaFromFindings(prog, qual, compl){
+  const qa = [];
+  prog.incons.slice(0,8).forEach(x=>qa.push({ category:'數據一致性', question:`報告中${x.key}出現不同數值或日期（${x.vals.join('、')}），請釐清何者正確。`, answer:`感謝委員意見。已逐一核對原始資料，統一修正為正確數值，修正位置：${x.locs.join('、')}。`, adjustment:`統一 ${x.locs.join('、')} 之數值，並於表格註明統計基準日。`, priority:'高', predicted:true, source:x.locs.join('；') }));
+  prog.completion.filter(c=>c.status!=='符合').slice(0,8).forEach(c=>qa.push({ category:'契約符合性', question:`契約／計畫要求「${c.item}」${c.required}，報告${c.status==='未提及'?'未見相關說明':'為 '+c.done}，請說明執行情形。`, answer:`感謝委員意見。${c.status==='未提及'?'將於報告補充本項執行成果與佐證':'將補充剩餘數量之執行規劃與預定完成時間'}，修正位置〔○〕。`, adjustment:`補充「${c.item}」之辦理數量、佐證與時程。`, priority:'高', predicted:true, source:c.source }));
+  compl.filter(c=>c.status==='缺漏').slice(0,6).forEach(c=>qa.push({ category:'工作項目完整性', question:`請說明「${c.plan_item.slice(0,50)}」之辦理成果。`, answer:'感謝委員意見。將於報告新增對應章節說明辦理方式、成果與佐證資料，位置〔○〕。', adjustment:'新增或補強對應章節。', priority:'中', predicted:true, source:c.source }));
+  prog.marks.slice(0,8).forEach(m=>qa.push({ category:'待確認事項', question:`「${m.text.slice(0,40)}」於報告中標示為${m.kind}，請確認最新數據。`, answer:'感謝委員意見。已更新為最新資料並移除標示。', adjustment:'更新內容並移除螢光標示。', priority:'中', predicted:true, source:m.loc }));
+  qual.typos.filter(t=>t.type==='錯字').slice(0,3).forEach(t=>qa.push({ category:'文字品質', question:`報告文字有誤植（例：${t.original}），請全面校對。`, answer:'感謝委員意見。已全面校對修正。', adjustment:t.suggestion, priority:'低', predicted:true, source:t.location }));
+  return qa;
+}
+
+/* R5. 參考文獻（APA 7） */
+function analyzeRefs(docs){
+  const entries = [], cites = [];
+  docs.forEach(d=>{
+    const lines = d.text.split('\n'); let inRef = false;
+    const rh = d.text.search(/(^|\n)\s*(參考文獻|參考資料|引用文獻|References|Bibliography)\s*[:：]?\s*(\n|$)/i), body = rh >= 0 ? d.text.slice(0, rh) : d.text;
+    lines.forEach((l, i)=>{ const t = l.trim();
+      if(/^(參考文獻|參考資料|引用文獻|References|Bibliography|文獻)\s*[:：]?$/i.test(t)){ inRef = true; return; }
+      if(inRef && (/^(附錄|附件|Appendix)/i.test(t) || (headingLevel(t)===1))) inRef = false;
+      if(inRef && t.length >= 10 && !/^【/.test(t)){ if(entries.length && /^[a-z,.;:)\]]/.test(t)) entries[entries.length-1].raw += ' '+t; else entries.push({ raw:t, doc:d.name }); }
+    });
+    for(const m of body.matchAll(/([\u4e00-\u9fff]{2,4}(?:等人|等)?)\s*[（(]\s*((?:民國)?\d{2,4})\s*[)）]/g)) cites.push({ author:m[1].replace(/等人?$/,''), year:m[2], raw:m[0], loc:locate(d, m.index) });
+    for(const m of body.matchAll(/[（(]\s*([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z .&、\-]{1,40}?)\s*[,，]\s*(\d{4})[a-z]?\s*[)）]/g)) cites.push({ author:m[1].replace(/\s*(et al\.?|等人?)$/,''), year:m[2], raw:m[0], loc:locate(d, m.index) });
+    for(const m of d.text.matchAll(/[「《]([^「」《》]{6,60}(?:計畫|報告|指引|手冊|規範|辦法|準則|標準|法))[」》]/g)) entries.push({ raw:m[1], doc:d.name, named:true, loc:locate(d, m.index) });
+  });
+  const uniq = []; entries.forEach(e=>{ if(!uniq.some(u=>titleSim(u.raw, e.raw) > .85)) uniq.push(e); });
+  const refs = uniq.slice(0, 120).map(e=>parseRef(e));
+  return { refs, cites };
+}
+function parseRef(e){
+  const raw = stripMarks(e.raw).replace(/^\s*(\[\d+\]|\d+[.、)]|[-•])\s*/,'');
+  const doi = (raw.match(/10\.\d{4,9}\/[^\s，。；,;]+/)||[])[0] || null, url = (raw.match(/https?:\/\/\S+/)||[])[0] || null;
+  if(e.named) return { title:raw, authors:'', year:'', source:'', type:/法|辦法|準則|標準/.test(raw)?'法規':'報告', doi, url, zh:true, src:e.loc||e.doc, raw };
+  const ym = raw.match(/[（(]\s*((?:民國)?\d{2,4})[a-z]?\s*[)）]|[,，.]\s*(\d{4})[a-z]?[.,，。]/);
+  const year = ym ? (ym[1]||ym[2]) : '', zh = CJK.test(raw.slice(0,12));
+  let authors = '', rest = raw;
+  if(ym){ authors = raw.slice(0, ym.index).replace(/[,，。\s]+$/,'').trim(); rest = raw.slice(ym.index + ym[0].length).replace(/^[\s.。，,]+/,''); }
+  const parts = rest.split(zh ? /[。.]/ : /\.\s+/).map(s=>s.trim()).filter(Boolean);
+  const title = (parts[0]||'').replace(/^[「《]|[」》]$/g,''), source = parts.slice(1).filter(p=>!/^https?:|^doi/i.test(p)).join(zh?'。':'. ');
+  const type = /journal|期刊|學報|vol\.|\d+\(\d+\)/i.test(raw) ? '期刊' : /出版|press|publisher|書/i.test(raw) ? '書籍' : /法|辦法|準則|標準/.test(raw) ? '法規' : /http/i.test(raw) ? '網頁' : /報告|計畫|report/i.test(raw) ? '報告' : '其他';
+  return { title, authors, year, source, type, doi, url, zh, src:e.doc, raw };
+}
+function apaFormat(r){
+  const miss = '〔缺〕', y = r.year ? String(r.year).replace(/^民國/,'') : '';
+  const yy = y ? (y.length <= 3 ? `${+y+1911}` : y) : miss;
+  if(r.zh) return `${r.authors||miss}（${yy}）。${r.title||miss}。${r.source||miss}。${r.doi?' https://doi.org/'+r.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//,''):(r.url?' '+r.url:'')}`;
+  return `${r.authors||miss} (${yy}). ${r.title||miss}. ${r.source||miss}.${r.doi?' https://doi.org/'+r.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//,''):(r.url?' '+r.url:'')}`;
+}
+
+/* ---------- A0. 共用 ---------- */
+function parseJSONLoose(text){
+  let t = String(text).trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const cands = []; if(fence) cands.push(fence[1]);
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if(a>=0 && b>a) cands.push(t.slice(a,b+1));
+  for(const c of cands){ try{ return JSON.parse(c); }catch(e){ try{ return JSON.parse(c.replace(/,\s*([}\]])/g,'$1')); }catch(_){} } }
+  throw new Error(a<0 ? '回應中找不到 JSON 物件' : 'JSON 格式錯誤（可能被截斷）');
+}
+function rocToday(){ const d = new Date(); return `民國 ${d.getFullYear()-1911} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`; }
+const STEP_NAMES = ['讀取已解析文件','規則引擎擷取、比對與計算','外部開放資料查詢（OpenAlex）','載入本機 AI','本機 AI 增強','防幻覺查核（數字／原文比對）','整理成果'];
+function showSteps(P, title){
+  $('#'+P).innerHTML = `<div class="panel-hd"><div class="ttl"><i class="fa-solid fa-spinner fa-spin"></i>${esc(title)}・處理中</div></div>
+  <div class="panel-bd"><div class="steps">${STEP_NAMES.map((s,i)=>`<div class="step" data-step="${i}"><span class="si">${i+1}</span>${s}<span class="st-note"></span></div>`).join('')}</div><div class="skel" style="width:90%"></div><div class="skel" style="width:70%"></div></div>`;
+}
+function setStep(P, i, st, note=''){ const el = $(`#${P} [data-step="${i}"]`); if(!el) return; el.className = 'step '+st; el.querySelector('.si').innerHTML = st==='done'||st==='skip' ? '✓' : st==='err' ? '✕' : i+1; el.querySelector('.st-note').textContent = note; }
+const ACTIONS = {
+  form_ocr:       { title:'現場表單電子化／摘要表／說明報告', zone:'form', panel:'res-form', icon:'fa-wand-magic-sparkles' },
+  progress_check: { title:'進度／驗收檢核', zone:'review', panel:'res-review', icon:'fa-flag-checkered' },
+  quality_check:  { title:'報告品質檢核', zone:'review', panel:'res-review', icon:'fa-spell-check' },
+  review_qa:      { title:'委員意見回覆／調整建議／QA', zone:'review', panel:'res-review', icon:'fa-comments' },
+  apa:            { title:'APA 參考文獻', zone:'review', panel:'res-review', icon:'fa-book' },
+  proposal:       { title:'Proposal', zone:'gov', panel:'res-gov', icon:'fa-file-lines' },
+  ppt:            { title:'簡報（PPT）', zone:'gov', panel:'res-gov', icon:'fa-person-chalkboard' },
+  tender:         { title:'招標文件／可行性評估／委員名單', zone:'gov', panel:'res-gov', icon:'fa-file-signature' },
+  gov_committee:  { title:'委員意見與調整建議', zone:'gov', panel:'res-gov', icon:'fa-user-tie' }
+};
+const srcMap = r => Object.fromEntries(arr(r.sources).map(s=>[s.id, s.file]));
+const ctxBlock = r => arr(r.sources).map(s=>`[${s.id}] ${s.text}`).join('\n').slice(0, RAG.maxCtx);
+const mapSrc = (v, r) => String(v||'').split(/[,，\s]+/).filter(Boolean).map(x=>srcMap(r)[x] || x).join('、');
+
+async function runAction(action){
+  if(STATE.busy){ toast('目前有工作進行中，請稍候'); return; }
+  const def = ACTIONS[action], P = def.panel;
+  if(Object.values(STATE.docs).flat().some(d=>d.status==='parsing')){ toast('文件仍在解析或 OCR 中，請稍候','err'); return; }
+  STATE.busy = true; $$(`[data-action="${action}"]`).forEach(b=>b.classList.add('running'));
+  showSteps(P, def.title);
+  const log = [];
+  const R = {
+    P, log,
+    step:(i, st, note='')=>{ setStep(P, i, st, note); if(st==='done' || st==='skip') setStep(P, i+1, 'run'); log.push(`${STEP_NAMES[i]}：${st==='skip'?'略過':''}${note}`); },
+    ai: async ()=>{ setStep(P, 3, 'run', AI.status==='ready' ? '已就緒' : '首次使用需下載模型，請稍候…'); const ok = await AI.ensure(); R.step(3, ok?'done':'skip', ok ? AI.model : (AI.err || '無法使用')); R.usedAI = ok; return ok; },
+    usedAI:false
+  };
+  try{
+    setStep(P, 0, 'run');
+    const out = await HANDLERS[action](R);
+    const engine = { ai:R.usedAI, label: R.usedAI ? `本機 AI＋規則引擎` : '規則引擎',
+      note: R.usedAI ? `由規則引擎直接從上傳文件擷取與計算，並以本機 AI（${esc(AI.model)}）補強文字與判讀；AI 輸出已做數字與原文查核，未通過者已捨棄或標示。資料未離開此電腦。`
+                     : AI.status==='ready' ? '本功能由規則引擎（及 OpenAlex 查詢）直接從上傳文件產生，不需 AI；結果可追溯至來源。' : `本次未使用 AI（${esc(AI.err || '本機 AI 未就緒')}）。以下結果全部由規則引擎直接從你上傳的文件擷取、比對、計算產生，可追溯至來源；文字敘述類內容較精簡。` };
+    out.ctx = out.ctx || {}; out.ctx.log = log;
+    STATE.results[P] = { action, data:out.data, ctx:{ retrieval:out.ctx.retrieval||{mode:'none',sources:[]}, ext:out.ctx.ext||null, log }, engine };
+    renderResult(P, action, out.data, STATE.results[P].ctx, engine);
+    toast(`${esc(def.title)} 完成`, 'ok');
+  }catch(e){
+    console.error(e);
+    const run = $(`#${P} .step.run`); if(run) run.className = 'step err';
+    $(`#${P} .panel-bd`).insertAdjacentHTML('beforeend', `<div class="badbox"><b>無法完成：</b>${esc(e.message)}</div>`);
+    $(`#${P} .panel-hd .ttl`).textContent = `${def.title}・未完成`;
+    toast(esc(e.message),'err');
+  }finally{ STATE.busy = false; $$('.running').forEach(b=>b.classList.remove('running')); }
+}
+function renderResult(P, action, data, ctx, engine){
+  const def = ACTIONS[action];
+  const view = RENDER[action](data, { retrieval:ctx.retrieval||{sources:[]}, ext:ctx.ext||{}, web:[] });
+  Object.assign(view, { retrieval:ctx.retrieval||{sources:[]}, prompt:arr(ctx.log).join('\n'), engine:{ ...engine, label:engine.label } });
+  mountPanel(P, def, view);
+}
+
+/* ---------- A1. 處理流程（每項功能） ---------- */
+const HANDLERS = {
+async form_ocr(R){
+  const fdocs = readyDocs('form'), cdocs = readyDocs('contract');
+  if(!fdocs.length) throw new Error('請先上傳現場表單（照片、掃描檔、PDF、Word、Excel 等）');
+  R.step(0,'done',`表單 ${fdocs.length} 份、契約 ${cdocs.length} 份`);
+  const forms = fdocs.flatMap(formFromDoc), summary = summaryFromForms(forms), hint = $('#form-hint').value.trim();
+  const rep = reportFromForms(forms, summary, cdocs, hint);
+  R.step(1,'done',`${forms.length} 份表單頁、${summary.tables.length} 張摘要表`);
+  R.step(2,'skip','本功能不需要');
+  const warnings = [];
+  if(fdocs.some(d=>d.ocr)) warnings.push('部分表單經 OCR 辨識：手寫字、印章與勾選框辨識率有限，請以原件逐欄核對（低信心欄位已標示）。');
+  let md = rep.md, retrieval = { mode:'none', sources:[] };
+  if(await R.ai()){
+    const formsText = forms.map(f=>formToRows(f).map(r=>r.join(' ')).join('\n')).join('\n');
+    retrieval = await retrieve('contract', formsText.slice(0,1500)+' 工作項目 契約 規格 頻率', [], 1400, 4);
+    const facts = rep.md.slice(0, 2200);
+    setStep(R.P, 4, 'run', '撰寫說明報告');
+    const out = await AI.text(AI_RULE+`依「規則引擎初稿」與「契約段落」改寫成正式說明報告。必須保留六個章節標題（一、工作概述 二、契約依據 三、執行內容與方法 四、成果數據 五、契約符合情形 六、異常與待確認事項），第五章保留 Markdown 表格；引用契約時以 [S#] 標註。只輸出 Markdown。`,
+      `【規則引擎初稿】\n${facts}\n【契約段落】\n${ctxBlock(retrieval).slice(0,1400)}`, { maxTokens:1600 });
+    R.step(4,'done','說明報告');
+    const bad = numsNotInSource(out, facts + formsText + ctxBlock(retrieval) + hint);
+    if(out.length > 200 && /一、/.test(out) && /六、/.test(out) && bad.length <= 1){ md = out + (bad.length ? `\n\n> 數字查核：${bad.join('、')} 未見於來源資料，請人工確認。` : ''); R.step(5,'done','AI 報告通過數字查核'); }
+    else { warnings.push(`本機 AI 改寫之報告${bad.length?`含來源中不存在的數字（${bad.slice(0,5).join('、')}）`:'格式不完整'}，已改用規則引擎版本。`); R.step(5,'done','AI 版本未通過，改用規則版'); }
+  } else { R.step(4,'skip'); R.step(5,'skip'); }
+  R.step(6,'done');
+  return { data:{ forms, summary, report_markdown:md, contract_matrix:rep.matrix, issues:rep.issues, warnings }, ctx:{ retrieval } };
+},
+async progress_check(R){
+  const docs = readyDocs('review'); if(!docs.length) throw new Error('請先上傳招標契約與進度報告');
+  R.step(0,'done',`${docs.length} 份`);
+  const prog = analyzeProgress(docs);
+  R.step(1,'done',`數量要求 ${prog.completion.length}、節點 ${prog.checkpoints.length}、不一致 ${prog.incons.length}`);
+  R.step(2,'skip','本功能不需要');
+  let retrieval = { mode:'none', sources:[] };
+  if(await R.ai()){
+    const reps = docs.filter(d=>/報告/.test(d.role)), targets = prog.completion.filter(c=>c.status!=='符合').slice(0, 8);
+    let n = 0, ok = 0;
+    for(const c of targets){
+      setStep(R.P, 4, 'run', `判讀 ${++n}/${targets.length}`);
+      const r = await retrieve(reps, c.item+' '+c.required, [], 1800, 4);
+      const j = await AI.json(AI_RULE+`判斷報告是否已完成指定要求。輸出 JSON：{"status":"符合|部分符合|未提及","done":"報告中的完成數量或「未提及」","quote":"直接引用報告原文 10–60 字","source":"S#"}`, `【要求】${c.item}：${c.required}\n【報告段落】\n${ctxBlock(r)}`, { maxTokens:300 });
+      if(j && j.quote && substrIn(j.quote, ctxBlock(r)) && ['符合','部分符合','未提及'].includes(j.status)){ c.status = j.status; c.done = `${j.done||''}（AI 判讀，原文：「${String(j.quote).slice(0,60)}」）`; c.source += '；'+mapSrc(j.source, r); ok++; }
+    }
+    R.step(4,'done',`${ok}/${targets.length} 項採用 AI 判讀`); R.step(5,'done','AI 判讀均需引用原文且比對成功才採用');
+    prog.nonconformities = prog.nonconformities.filter(x=>!targets.some(c=>c.item===x.item && c.status==='符合'));
+  } else { R.step(4,'skip'); R.step(5,'skip'); }
+  R.step(6,'done');
+  return { data:{ nonconformities:prog.nonconformities, todos:prog.todos, checkpoints:prog.checkpoints, completion:prog.completion, warnings:prog.warnings }, ctx:{ retrieval } };
+},
+async quality_check(R){
+  const docs = readyDocs('review'); if(!docs.length) throw new Error('請先上傳報告與招標契約');
+  R.step(0,'done',`${docs.length} 份`);
+  const base = docs.filter(d=>/招標|契約|工作計畫|需求/.test(d.role)), reps = docs.filter(d=>/報告/.test(d.role));
+  const compl = complianceMatrix(base, reps.length ? reps : docs), q = analyzeQuality(docs, compl);
+  R.step(1,'done',`規則檢核 ${q.typos.length} 項`); R.step(2,'skip','本功能不需要');
+  const warnings = [];
+  if(await R.ai()){
+    const chunks = (reps.length ? reps : docs).flatMap(d=>d.chunks.map(c=>({ d, c }))).slice(0, 40); let add = 0, n = 0;
+    for(const {d, c} of chunks){
+      setStep(R.P, 4, 'run', `逐段校對 ${++n}/${chunks.length}`);
+      const j = await AI.json(AI_RULE+`找出段落中的錯別字、簡體字、用語不一致或明顯數字錯誤。沒有就輸出空陣列。輸出 JSON：{"typos":[{"original":"原文中的錯誤詞（必須逐字出現在段落中）","suggestion":"正確寫法","type":"錯字|用語一致性|數值一致性|格式"}]}`, c.text.slice(0, 1200), { maxTokens:400 });
+      arr(j && j.typos).forEach(t=>{ if(t && t.original && t.suggestion && t.original!==t.suggestion && c.text.includes(t.original) && t.original.length <= 30){ q.typos.push({ location:locate(d, d.text.indexOf(c.text)), original:t.original, suggestion:`→「${t.suggestion}」（AI 校對）`, type:t.type||'錯字', source:d.name }); add++; } });
+    }
+    R.step(4,'done',`AI 新增 ${add} 項`); R.step(5,'done','原文逐字比對通過者才採用');
+    if((reps.length ? reps : docs).reduce((a,d)=>a+d.chunks.length,0) > 40) warnings.push('AI 逐段校對僅涵蓋前 40 段；規則檢核已涵蓋全文。');
+  } else { R.step(4,'skip'); R.step(5,'skip'); }
+  q.warnings = warnings.concat(!base.length ? ['未標記「招標契約／工作計畫書」類文件，計畫符合度無法比對。'] : []);
+  R.step(6,'done');
+  return { data:q };
+},
+async review_qa(R){ return qaFlow(R, 'review', /招標|契約|工作計畫|需求/, /報告/, /審查意見/); },
+async gov_committee(R){ return qaFlow(R, 'gov', /招標/, /報告/, /委員|審查/); },
+async apa(R){
+  const docs = readyDocs('review'); if(!docs.length) throw new Error('請先上傳報告');
+  R.step(0,'done',`${docs.length} 份`);
+  const { refs, cites } = analyzeRefs(docs.filter(d=>/報告|參考/.test(d.role)).length ? docs.filter(d=>/報告|參考/.test(d.role)) : docs);
+  R.step(1,'done',`書目 ${refs.length}、內文引用 ${cites.length}`);
+  let looked = 0, hit = 0;
+  if($('#rev-openalex').checked && refs.length){
+    for(const r of refs.slice(0, 30)){
+      setStep(R.P, 2, 'run', `OpenAlex 比對 ${++looked}/${Math.min(30, refs.length)}`);
+      try{
+        let w = r.doi ? await oaWorkByDoi(r.doi) : null;
+        if(!w && r.title && r.title.length >= 8 && !r.zh){ const res = await oaWorks(r.title, 3); w = res.find(x=>titleSim(x.display_name, r.title) >= .85) || null; }
+        if(w){ hit++; r.oa = w.id; r.title = w.display_name || r.title; r.year = r.year || w.publication_year; r.authors = r.authors || arr(w.authorships).slice(0,20).map(a=>a.author?.display_name).filter(Boolean).join(', '); r.source = r.source || w.primary_location?.source?.display_name || ''; r.doi = r.doi || w.doi; r.verified = true; }
+      }catch(e){ R.log.push('OpenAlex：'+e.message); }
+    }
+    R.step(2,'done',`比對成功 ${hit}/${looked}`);
+  } else R.step(2,'skip', refs.length ? '未勾選' : '無書目');
+  R.step(3,'skip','本功能不需要 AI'); R.step(4,'skip'); R.step(5,'skip');
+  const yy = r => { const y = String(r.year||'').replace(/^民國/,''); return y ? (y.length<=3 ? String(+y+1911) : y) : '〔缺〕'; };
+  const first = r => (r.authors||'').split(/[、,，;&]| and /)[0].trim();
+  const list = refs.map(r=>({ apa:apaFormat(r), in_text:`(${first(r)||'〔缺〕'}, ${yy(r)})`, type:r.type, doi_url:r.doi ? (/^http/.test(r.doi)?r.doi:'https://doi.org/'+r.doi) : (r.url||null), verified:r.verified ? '已查證' : '未查證', source:r.src, _a:first(r), _y:yy(r), zh:r.zh }));
+  list.sort((a,b)=> (a.zh===b.zh ? (a._a||'').localeCompare(b._a||'', a.zh?'zh-Hant-TW-u-co-stroke':'en') : (a.zh?-1:1)));
+  const issues = [];
+  cites.forEach(c=>{ const y = c.year.length<=3 ? String(+c.year.replace(/^民國/,'')+1911) : c.year; if(!list.some(l=>l._a && (l._a.includes(c.author) || c.author.includes(l._a)) && l._y===y)) issues.push(`內文引用「${c.raw}」（${c.loc}）在參考文獻中找不到對應項目`); });
+  list.filter(l=>l._a && !cites.some(c=>l._a.includes(c.author) || c.author.includes(l._a))).forEach(l=>issues.push(`參考文獻「${l.apa.slice(0,40)}…」未見於內文引用`));
+  R.step(6,'done');
+  return { data:{ references:list.map(({_a,_y,zh,...x})=>x), issues:[...new Set(issues)].slice(0,80), warnings: refs.length ? ['書目欄位由原文自動拆解；「〔缺〕」為原文未提供，未自行補造。經 OpenAlex 比對成功者標為「已查證」。'] : ['未在文件中找到「參考文獻」章節或內文引用。'] } };
+},
+async proposal(R){
+  const docs = readyDocs('gov'); if(!docs.length) throw new Error('請先上傳招標文件（及 Proposal 範本）');
+  R.step(0,'done',`${docs.length} 份`);
+  const tpl = docs.filter(d=>d.role==='Proposal範本'), tender = docs.filter(d=>d.role==='招標文件'), refs = docs.filter(d=>!['Proposal範本'].includes(d.role));
+  let toc = [];
+  tpl.forEach(d=>d.text.split('\n').forEach(l=>{ const lv = headingLevel(l); if(lv && !toc.some(t=>t.text===l.trim())) toc.push({ text:l.trim(), level:lv }); }));
+  const template_used = toc.length >= 3;
+  if(!template_used) toc = ['壹、計畫緣起與目標','一、計畫緣起','二、計畫目標','貳、工作項目與執行方法','參、預期成果與效益','肆、工作期程與查核點','伍、人力配置','陸、經費概算','柒、品質管制與風險管理'].map(t=>({ text:t, level:/^[壹貳參肆伍陸柒]/.test(t)?1:2 }));
+  toc = toc.slice(0, 60).map(t=>{ const m = t.text.match(/^(第[^\s章篇節]+[章篇節]|[壹貳參肆伍陸柒捌玖拾一二三四五六七八九十]+[、.．]|[（(][^)）]+[)）]|\d+(?:\.\d+)*[.．、]?)\s*(.*)$/); return { no:m?m[1]:'', heading:m?m[2]||t.text:t.text, level:t.level }; });
+  const reqs = contractRequirements(tender.length ? tender : docs.filter(d=>d.role!=='Proposal範本'));
+  const CAT = [[/期限|期中|期末|期初|提送|查核點|日曆天|個月/, /期程|時程|進度|查核/],[/經費|預算|金額|費用|付款/, /經費|預算|費用/],[/成果|效益|指引|交付|報告書/, /成果|效益|交付/],[/人員|人力|資格|主持人/, /人力|人員|組織|團隊/],[/品質|品管|風險|資安/, /品質|品管|風險/],[/辦理|執行|建立|評估|檢測|勾稽|分析|宣導|工作項目|工作內容/, /工作|執行|方法|項目/]];
+  const map = reqs.map(r=>{ let best = null;
+    for(const [rq, th] of CAT){ if(rq.test(r.text)){ best = toc.find(t=>th.test(t.heading)); if(best) break; } }
+    if(!best){ let bs = -1; toc.forEach(t=>{ const v = jacc(t.heading, r.text); if(v > bs){ bs = v; best = t; } }); }
+    return { requirement:r.text, section:`${best.no} ${best.heading}`, source:r.doc, _t:best }; });
+  const allChunks = refs.flatMap(d=>d.chunks.map(c=>({ ...c, file:d.name, role:d.role })));
+  const sections = [], usedS = new Set();
+  for(const t of toc.filter(t=>t.level<=2)){
+    const mine = map.filter(m=>m._t===t).slice(0,6);
+    const ranked = bm25Rank(allChunks, t.heading + ' ' + mine.map(m=>m.requirement).join(' ')).filter(c=>c.score > 0).slice(0, 3);
+    const r = { mode:'bm25', sources: ranked.map((c,i)=>({ id:'S'+(i+1), file:c.file, role:c.role, chunk:c.i, text:c.text, score:c.score })) };
+    const qb = bigrams(t.heading + ' ' + mine.map(m=>m.requirement).join(' '));
+    const cand = r.sources.flatMap(s=>splitSentences(stripMarks(s.text)).filter(l=>CJK.test(l) && l.length <= 160 && !/^[^，。]*,[^，。]*,/.test(l) && !/^\|/.test(l) && !/[（(]\d{4}[)）][。.]|doi|https?:/i.test(l) && !usedS.has(l) && !mine.some(m=>jacc(m.requirement, l) > .6)).map(l=>({ l, f:s.file, v:jacc(qb, bigrams(l)) })));
+    const pick = cand.filter(c=>c.v > .04).sort((a,b)=>b.v-a.v).slice(0,3); pick.forEach(c=>usedS.add(c.l));
+    const pts = pick.map(c=>`${c.l}（${c.f}）`);
+    let md = '';
+    if(mine.length) md += `**招標需求**\n${mine.map(m=>`- ${m.requirement}（${m.source}）`).join('\n')}\n`;
+    if(pts.length) md += `**相關資料重點**\n${pts.map(p=>'- '+p).join('\n')}\n`;
+    if(!md) md = '【待補】（上傳文件中未找到對應內容）';
+    sections.push({ no:t.no, heading:t.heading, content_markdown:md, _r:r, _mine:mine });
+  }
+  R.step(1,'done',`目錄 ${toc.length} 項、需求 ${reqs.length} 條`); R.step(2,'skip','本功能不需要');
+  const warnings = template_used ? [] : ['未上傳或無法辨識「Proposal範本」的目錄，採政府委託服務案常見架構。'];
+  if(await R.ai()){
+    let n = 0, ok = 0;
+    for(const s of sections){
+      setStep(R.P, 4, 'run', `撰寫 ${++n}/${sections.length}：${s.heading}`);
+      if(/待補/.test(s.content_markdown)) continue;
+      const src = s.content_markdown;
+      const out = await AI.text(AI_RULE+`依下列資料撰寫服務建議書「${s.no} ${s.heading}」章節草稿 200–400 字。只能使用資料內容，引用時註明來源檔名；資料不足處寫「【待補】」。只輸出內文。`, src.slice(0, AI_IN), { maxTokens:700 });
+      const bad = numsNotInSource(out, src);
+      if(out.length > 60 && bad.length === 0){ s.content_markdown = out + `\n\n<sub>依據：</sub>\n` + src; ok++; }
+    }
+    R.step(4,'done',`${ok} 章採用 AI 草稿`); R.step(5,'done','含不存在數字的草稿已捨棄');
+  } else { R.step(4,'skip'); R.step(5,'skip'); }
+  R.step(6,'done');
+  const title = (findName(docs) || '本案') + ' 服務建議書';
+  return { data:{ title, template_used, toc:toc.map(t=>({ no:t.no, heading:t.heading, level:t.level })), sections:sections.map(({_r,_mine,...s})=>s), requirement_map:map.map(({_t,...m})=>m), warnings } };
+},
+async ppt(R){
+  const docs = readyDocs('gov'); if(!docs.length) throw new Error('請先上傳報告');
+  R.step(0,'done',`${docs.length} 份`);
+  const src = docs.filter(d=>/報告/.test(d.role)).length ? docs.filter(d=>/報告/.test(d.role)) : docs.filter(d=>!/範本|預算/.test(d.role));
+  const secs = src.flatMap(sectionsOf).filter(s=>s.text.replace(/\s/g,'').length > 40 && !/參考文獻|參考資料|References|附錄/i.test(s.title)).map(s=>({ ...s, text:stripMarks(s.text) }));
+  const name = findName(docs) || docs[0].name.replace(/\.[^.]+$/,'');
+  const slides = [{ type:'cover', title:name, subtitle:'工作重點說明', notes:'' }];
+  const top = secs.filter(s=>s.level<=1).length >= 3 ? secs.filter(s=>s.level<=1) : secs;
+  slides.push({ type:'bullets', title:'簡報大綱', bullets:top.filter(s=>s.level).slice(0,6).map(s=>s.title.replace(/^[^\s、.．]+[、.．]\s*/,'').slice(0,24)), takeaway:'', notes:'' });
+  top.slice(0, 10).forEach(s=>{
+    const qs = findQuantities(s.text).filter(q=>!['月','天','日曆天','工作天'].includes(q.unit)).slice(0,4), sents = topSentences(s.text, 4, 60), dates = findDates(s.text);
+    const title = (s.level ? s.title.replace(/^[^\s、.．]+[、.．]\s*/,'') : (topSentences(s.text,1,20)[0]||'概述').replace(/[：:].*$/,'')).slice(0,28) || s.title;
+    let sl;
+    if(qs.length >= 2) sl = { type:'kpi', title, kpis:qs.slice(0,4).map(q=>({ value:`${q.v.toLocaleString()} ${q.unit}`, label:(q.after ? q.after.slice(0,10) : q.key.slice(-9)).replace(/^(本計畫|本年度|共|已|並|完成|辦理)+/,'') || q.key.slice(-6) })) };
+    else if(dates.length >= 3) sl = { type:'timeline', title, steps:dates.slice(0,5).map(d=>({ label:fmtROC(d.d), text:s.text.slice(d.idx+d.raw.length, d.idx+d.raw.length+24).replace(/^[\s，、：:]+/,'').split(/[。；\n]/)[0] })) };
+    else if(sents.length >= 3) sl = { type:'cards', title, cards:sents.slice(0,3).map(x=>({ title:x.split(/[，,：:]/)[0].slice(0,12), text:x.slice(0,40) })) };
+    else sl = { type:'bullets', title, bullets:sents.length ? sents : [s.text.slice(0,60)] };
+    sl.takeaway = (sents.find(x=>x.length <= 32) || '').replace(/…$/,''); sl.notes = sents.join(' '); sl.source = s.doc.name;
+    slides.push(sl);
+  });
+  slides.push({ type:'closing', title:'敬請指教', subtitle:'Q & A', notes:'' });
+  R.step(1,'done',`${slides.length} 頁（擷取式）`); R.step(2,'skip','本功能不需要');
+  const warnings = [];
+  if(await R.ai()){
+    setStep(R.P, 4, 'run', '精煉每頁文字');
+    let ok = 0;
+    for(const sl of slides.filter(x=>['bullets','cards'].includes(x.type) && x.notes)){
+      const j = await AI.json(AI_RULE+`把資料濃縮成簡報重點。輸出 JSON：{"title":"≤16字標題","bullets":["≤28字",...3–5點],"takeaway":"≤28字關鍵訊息"}`, `標題：${sl.title}\n資料：${sl.notes}`.slice(0, 1600), { maxTokens:400 });
+      if(j && arr(j.bullets).length >= 2 && numsNotInSource(JSON.stringify(j), sl.title+sl.notes).length === 0){ sl.type = 'bullets'; sl.title = String(j.title||sl.title).slice(0,24); sl.bullets = j.bullets.map(String).slice(0,5); sl.takeaway = String(j.takeaway||'').slice(0,34); delete sl.cards; ok++; }
+    }
+    R.step(4,'done',`${ok} 頁採用 AI 精煉`); R.step(5,'done','含不存在數字者已捨棄');
+  } else { R.step(4,'skip'); R.step(5,'skip'); }
+  R.step(6,'done');
+  return { data:{ theme:{ primary:'#1E3A8A', accent:'#0EA5E9', font:'Microsoft JhengHei' }, slides, warnings } };
+},
+async tender(R){
+  const docs = readyDocs('gov'), idea = $('#gov-idea').value.trim();
+  if(!docs.length && !idea) throw new Error('請上傳前期報告／招標文件，或輸入構想與議題');
+  R.step(0,'done',`${docs.length} 份`);
+  const tenderDocs = docs.filter(d=>d.role==='招標文件'), reps = docs.filter(d=>/報告/.test(d.role)), budgetDocs = docs.filter(d=>/預算/.test(d.role));
+  const name = findName(docs) || '（案名待定）';
+  // 工項：舊招標文件工作項目＋前期建議事項＋構想
+  const items = [];
+  const addItem = (t, src) => { if(/\(\d{4}\)|（\d{4}）|doi|https?:|學刊|Journal/i.test(t)) return; t = stripMarks(t).replace(/^[\s\-•(（]*[一二三四五六七八九十\d]+[)）、.．]\s*/,'').trim(); if(t.length < 6) return; if(items.some(x=>jacc(x.work_item, t) > .45)) return; items.push({ work_item:t.slice(0,40), description:t.length>40?t.slice(0,120):'', src }); };
+  contractRequirements(tenderDocs).filter(r=>/工作項目|辦理|建立|評估|執行|檢討/.test(r.text)).slice(0,8).forEach(r=>addItem(r.text, r.doc));
+  reps.forEach(d=>sectionsOf(d).filter(s=>/建議|後續|未來|展望/.test(s.title)).forEach(s=>topSentences(s.text, 4, 120).forEach(x=>addItem(x, d.name))));
+  idea.split(/[；;\n]+/).forEach(x=>addItem(x, '構想與議題'));
+  const fe = items.slice(0, 10);
+  // 經費、期程、人月：只採文件中出現的數據
+  const totalAmt = (()=>{ for(const d of tenderDocs.concat(reps)){ for(const s of splitSentences(d.text)){ if(/預算|採購金額|計畫經費|經費/.test(s)){ const a = findAmounts(s)[0]; if(a) return { v:a.v, src:d.name, raw:s.slice(0,60) }; } } } return null; })();
+  const budget_refs = [];
+  budgetDocs.concat(tenderDocs).forEach(d=>d.text.split('\n').forEach(l=>{ const cells = l.replace(/^\||\|$/g,'').split(/[|,\t]/).map(s=>s.trim()); const num = cells.map(c=>+c.replace(/[,元\s]/g,'')).find(v=>isFinite(v) && v >= 1000); const lab = cells.find(c=>CJK.test(c) && c.length <= 20); if(num && lab) budget_refs.push({ category:lab, amount:num, source:d.name }); }));
+  const cap = +$('#gov-budget').value || null, months = +$('#gov-months').value || (()=>{ for(const d of tenderDocs){ const m = d.text.match(/(\d+)\s*個月/); if(m) return +m[1]; const ds = findDates(d.text.match(/履約期限[\s\S]{0,80}/)?.[0]||''); if(ds.length >= 2) return Math.round((ds[1].d-ds[0].d)/2.63e9); } return null; })();
+  fe.forEach(f=>{
+    let amt = null, pm = null, srcs = [];
+    for(const d of docs){ for(const s of splitSentences(d.text)){ if(cover(bigrams(f.work_item), bigrams(s)) >= .6){ const a = findAmounts(s)[0]; if(a && amt==null){ amt = a.v; srcs.push(d.name); } const p = s.match(/(\d+(?:\.\d+)?)\s*人月/); if(p && pm==null) pm = +p[1]; } } }
+    Object.assign(f, { budget_ntd:amt, budget_basis: amt!=null ? '文件中與本工項同句出現之金額' : '需依機關或公會酬金基準補入', budget_sources:srcs, literature:[], schedule: months ? `第 M1–M${months} 月（待細分）` : '〔待排定〕', person_months:pm, pm_basis: pm!=null ? '文件所載' : '文件未載明', verified: amt!=null ? '已查證' : '未查證' });
+  });
+  R.step(1,'done',`工項 ${fe.length}、經費資料 ${budget_refs.length} 筆`);
+  // 外部：OpenAlex
+  const ext = { lit:[], pool:[], errors:[] }, useOA = $('#gov-openalex').checked;
+  let kws = $('#gov-kw').value.split(/[;；\n]/).map(s=>s.trim()).filter(Boolean);
+  const aiOK = await R.ai();
+  if(aiOK && !kws.length){
+    setStep(R.P, 4, 'run', '產生英文搜尋關鍵字');
+    const j = await AI.json(`把下列中文工作項目翻成學術資料庫英文搜尋關鍵字（每項 3–6 個英文字）。輸出 JSON：{"queries":["..."]}`, fe.map((f,i)=>`${i+1}. ${f.work_item}`).join('\n') + (idea ? '\n構想：'+idea : ''), { maxTokens:300 });
+    kws = arr(j && j.queries).map(String).filter(q=>/^[\x20-\x7e]{6,80}$/.test(q)).slice(0, 8);
+  }
+  if(useOA){
+    const qs = kws.length ? kws : fe.map(f=>f.work_item);
+    let n = 0;
+    for(const [i, q] of qs.slice(0,8).entries()){
+      setStep(R.P, 2, 'run', `文獻查詢 ${++n}/${Math.min(8, qs.length)}`);
+      try{ const ws = await oaWorks(q, 3); ws.forEach(w=>{ let L = ext.lit.find(x=>x.url===(w.doi||w.id)); if(!L){ L = { id:'L'+(ext.lit.length+1), title:w.display_name||'', year:w.publication_year, venue:w.primary_location?.source?.display_name||'', url:w.doi||w.id, cited:w.cited_by_count, authors:arr(w.authorships).map(a=>({ name:a.author?.display_name, id:a.author?.id, inst:arr(a.institutions).map(x=>x.display_name).join('; '), tw:arr(a.institutions).some(x=>x.country_code==='TW') })) }; ext.lit.push(L); } const f = fe[Math.min(i, fe.length-1)]; if(f && !f.literature.includes(L.id) && f.literature.length < 3) f.literature.push(L.id); }); }
+      catch(e){ ext.errors.push(e.message); }
+    }
+    for(const q of qs.slice(0,4)){
+      setStep(R.P, 2, 'run', `專家查詢：${q.slice(0,20)}`);
+      try{ (await oaAuthorsTW(q, 8)).forEach(a=>{ if(ext.pool.some(p=>p.oid===a.id)) return; ext.pool.push({ id:'E'+(ext.pool.length+1), oid:a.id, name:a.display_name, inst:arr(a.last_known_institutions)[0]?.display_name || a.last_known_institution?.display_name || '', url:a.orcid || a.id, works:a.works_count, cited:a.cited_by_count, h:a.summary_stats?.h_index, topics:arr(a.topics).slice(0,4).map(t=>t.display_name), q }); }); }
+      catch(e){ ext.errors.push(e.message); }
+    }
+    ext.lit.forEach(L=>L.authors.filter(a=>a.tw && a.name && !ext.pool.some(p=>p.oid===a.id || p.name===a.name)).forEach(a=>ext.pool.push({ id:'E'+(ext.pool.length+1), oid:a.id, name:a.name, inst:a.inst, url:a.id, works:null, cited:null, h:null, topics:[], q:'文獻作者：'+L.id })));
+    R.step(2,'done',`文獻 ${ext.lit.length}、臺灣專家 ${ext.pool.length}${ext.errors.length?`（${ext.errors.length} 次查詢失敗）`:''}`);
+  } else R.step(2,'skip','未勾選');
+  const kwText = (kws.join(' ') + ' ' + fe.map(f=>f.work_item).join(' ')).toLowerCase();
+  const committee = ext.pool.map(p=>{ const hit = p.topics.filter(t=>t.toLowerCase().split(/\W+/).some(w=>w.length > 4 && kwText.includes(w))); const lvl = hit.length >= 2 ? '高' : hit.length === 1 ? '中' : '低';
+    return { name:p.name, org:p.inst||null, title:null, expertise:p.topics.join('、') || '（OpenAlex 無主題資料）', profile_url:p.url, pool_id:p.id,
+      style_note:p.topics.length ? `研究取向：${p.topics.slice(0,3).join('、')}` : '公開資料未見', reputation_note:p.works!=null ? `OpenAlex：著作 ${p.works} 篇、被引用 ${p.cited} 次${p.h!=null?`、h-index ${p.h}`:''}` : null,
+      suitability:`${lvl}：${hit.length ? '研究主題與本案關鍵字相符（'+hit.join('、')+'）' : '研究主題與本案關鍵字重疊少'}`, conflict_check:'需查核：是否參與前期計畫、評選或投標團隊', source:p.id, _s:(hit.length*10)+Math.log10((p.cited||0)+1) };
+  }).sort((a,b)=>b._s-a._s).slice(0, 12).map(({_s,...c})=>c);
+  // 上傳之委員／專家資料
+  docs.filter(d=>/委員|專家/.test(d.role)).forEach(d=>d.text.split('\n').forEach(l=>{ const m = l.match(/([\u4e00-\u9fff]{2,4})\s*[|,，\s]\s*([^|,，]{2,30}(?:大學|學院|研究院|中心|署|局|處|公司|協會)[^|,，]{0,20})[|,，\s]*([^|,，]{0,12}(?:教授|研究員|處長|主任|副教授|助理教授|技師|總經理))?/); if(m && !committee.some(c=>c.name===m[1])) committee.push({ name:m[1], org:m[2], title:m[3]||null, expertise:'（依上傳資料）', profile_url:null, pool_id:null, style_note:'公開資料未見', reputation_note:null, suitability:'中：來自上傳名單，請依專長確認', conflict_check:'需查核', source:d.name }); }));
+  // 經費配置（僅在總經費已知且 AI 可用時推估比例）
+  const total = cap || totalAmt?.v || null;
+  if(aiOK && total && fe.some(f=>f.budget_ntd==null)){
+    setStep(R.P, 4, 'run', '依總經費推估各工項比例');
+    const j = await AI.json(AI_RULE+`依工作內容相對工作量，將總經費分配到各工項。輸出 JSON：{"alloc":[{"i":工項序號,"pct":百分比整數,"basis":"≤30字理由"}]}，pct 加總 100。`, fe.map((f,i)=>`${i+1}. ${f.work_item}${f.description?'：'+f.description:''}`).join('\n'), { maxTokens:500 });
+    const al = arr(j && j.alloc).filter(a=>isFinite(+a.pct) && +a.i >= 1 && +a.i <= fe.length), sum = al.reduce((a,x)=>a + +x.pct, 0);
+    if(al.length === fe.length && Math.abs(sum-100) <= 2){ al.forEach(a=>{ const f = fe[a.i-1]; if(f.budget_ntd==null){ f.budget_ntd = Math.round(total*a.pct/100/1000)*1000; f.budget_basis = `總經費 ${total.toLocaleString()} 元 × ${a.pct}%（本機 AI 依工作量推估：${String(a.basis||'').slice(0,30)}；需依酬金基準複核）`; f.budget_sources = [cap ? '使用者輸入預算上限' : totalAmt.src]; f.verified = '推估'; } }); }
+  }
+  // 計畫緣起
+  const back = reps.flatMap(d=>sectionsOf(d).filter(s=>/摘要|緣起|前言|結論/.test(s.title))).map(s=>topSentences(s.text, 3, 120).join('')).join('').slice(0, 900);
+  let origin = back ? `延續前期成果：${back}` : '【待補】';
+  if(aiOK && back){ setStep(R.P, 4, 'run', '撰寫計畫緣起'); const t = await AI.text(AI_RULE+'依前期成果與構想，寫 150–250 字「計畫緣起」。只輸出內文。', `前期成果：${back}\n構想：${idea||'（無）'}`, { maxTokens:500 }); if(t.length > 60 && numsNotInSource(t, back+idea).length===0) origin = t; }
+  if(aiOK) R.step(4,'done'); else R.step(4,'skip');
+  R.step(5, aiOK?'done':'skip', aiOK ? '經費比例加總、數字來源已驗證' : '');
+  const reqOld = contractRequirements(tenderDocs);
+  const deliver = reqOld.filter(r=>/(報告|提送|交付|成果)/.test(r.text)).slice(0,6);
+  const tender_markdown = `## 一、案名\n${name}（次期）\n## 二、計畫緣起\n${origin}\n## 三、採購標的與工作項目\n${fe.map((f,i)=>`${i+1}. ${f.work_item}${f.description?`：${f.description}`:''}`).join('\n')}\n## 四、履約期限與查核點\n${months?`履約期限：${months} 個月（暫定，依機關需求）。`:'〔依機關需求訂定〕'}\n${deliver.length?deliver.map(r=>'- '+r.text+'（前期招標文件）').join('\n'):'- 期初、期中、期末報告提送時程〔依機關需求〕'}\n## 五、經費\n${total?`預算上限新臺幣 ${total.toLocaleString()} 元（${cap?'使用者輸入':totalAmt.src}）。`:'〔依機關預算〕'}\n## 六、廠商資格與評選\n〔依相關法規及機關需求訂定〕`;
+  const known = fe.filter(f=>f.budget_ntd!=null);
+  R.step(6,'done');
+  return { data:{ project_name:name+'（次期）', tender_markdown, feasibility:fe.map(({src,...f})=>f),
+    totals:{ budget_ntd: known.length===fe.length ? known.reduce((a,f)=>a+f.budget_ntd,0) : null, months, person_months:null },
+    feasibility_summary:{ technical:`前期文件與構想歸納 ${fe.length} 項工項；OpenAlex 找到 ${ext.lit.length} 篇相關文獻。`, budget: total ? `總經費 ${total.toLocaleString()} 元；${known.length}/${fe.length} 項工項有經費數據${fe.some(f=>f.verified==='推估')?'（含 AI 推估比例）':''}。` : '文件與輸入均未提供總經費，工項經費需依酬金基準編列。', schedule: months ? `期程 ${months} 個月，工項時程待細分。` : '期程未提供。' },
+    committee, assumptions:['工項經費「已查證」者取自上傳文件；「推估」者為總經費依比例分配，須依酬金基準複核；「未查證」者需補入。','委員名單來自 OpenAlex 公開資料或上傳名單，職稱與聯絡方式需另行查證。'],
+    budget_refs, warnings:ext.errors.length ? [`OpenAlex 查詢有 ${ext.errors.length} 次失敗：${ext.errors[0]}`] : [] }, ctx:{ ext } };
+}
+};
+/** 共用：委員意見流程（報告檢核與政府專案共用） */
+async function qaFlow(R, zone, baseRe, repRe, revRe){
+  const docs = readyDocs(zone); if(!docs.length) throw new Error('請先上傳報告與招標文件');
+  R.step(0,'done',`${docs.length} 份`);
+  const base = docs.filter(d=>baseRe.test(d.role)), reps = docs.filter(d=>repRe.test(d.role)), revs = docs.filter(d=>revRe.test(d.role));
+  const prog = analyzeProgress(docs.map(d=>({ ...d, role: baseRe.test(d.role) ? '招標契約' : repRe.test(d.role) ? '進度報告' : d.role })));
+  const compl = complianceMatrix(base, reps.length ? reps : docs), qual = analyzeQuality(reps.length ? reps : docs, compl);
+  const qa = qaFromFindings(prog, qual, compl);
+  const actual = revs.flatMap(d=>splitSentences(d.text).filter(s=>s.length >= 10 && /^([（(]?[一二三四五六七八九十\d]+[)）、.．])/.test(s)).map(s=>({ q:s.replace(/^([（(]?[一二三四五六七八九十\d]+[)）、.．])\s*/,''), d })));
+  actual.slice(0, 20).forEach(a=>qa.unshift({ category:'實際審查意見', question:a.q, answer:'感謝委員意見。〔請說明處理方式與修正位置〕', adjustment:'〔待填〕', priority:'高', predicted:false, source:a.d.name }));
+  R.step(1,'done',`由檢核發現產生 ${qa.length} 題`); R.step(2,'skip','本功能不需要');
+  const other_qa = [], warnings = [];
+  if(await R.ai()){
+    const aspects = ['方法與數據可靠性','成果可用性與後續應用','經費與進度','法規與契約符合性','風險與限制']; let n = 0;
+    for(const asp of aspects){
+      setStep(R.P, 4, 'run', `預測委員意見 ${++n}/${aspects.length}：${asp}`);
+      const r = await retrieve(reps.length ? reps : docs, asp + ' 結果 結論 方法 數據', [], 1800, 4);
+      const j = await AI.json(AI_RULE+`你是審查委員。針對「${asp}」依報告段落提出 2 個具體審查意見，並代廠商擬答與調整建議。輸出 JSON：{"qa":[{"question":"...","answer":"感謝委員意見。...","adjustment":"...","priority":"高|中|低","source":"S#"}]}`, ctxBlock(r), { maxTokens:700 });
+      arr(j && j.qa).slice(0,2).forEach(x=>{ if(!x || !x.question) return; const txt = `${x.question}${x.answer}${x.adjustment}`; if(numsNotInSource(txt, ctxBlock(r)).length) return; qa.push({ category:asp, question:String(x.question), answer:String(x.answer||''), adjustment:String(x.adjustment||''), priority:['高','中','低'].includes(x.priority)?x.priority:'中', predicted:true, source:mapSrc(x.source, r) || r.sources.map(s=>s.file).join('、') }); });
+    }
+    for(const a of qa.filter(x=>!x.predicted).slice(0, 8)){
+      setStep(R.P, 4, 'run', '草擬實際意見回覆');
+      const r = await retrieve(reps.length ? reps : docs, a.question, [], 1600, 3);
+      const t = await AI.text(AI_RULE+'依報告段落，以「感謝委員意見。」開頭，草擬 60–150 字回覆並指出修正位置；資料不足寫〔待補〕。只輸出回覆。', `意見：${a.question}\n報告段落：\n${ctxBlock(r)}`, { maxTokens:300 });
+      if(t && numsNotInSource(t, ctxBlock(r)+a.question).length === 0) a.answer = t;
+    }
+    R.step(4,'done'); R.step(5,'done','含來源不存在數字之意見已捨棄');
+  } else { R.step(4,'skip'); R.step(5,'skip'); warnings.push('未使用 AI：委員意見由規則檢核發現（數據不一致、數量未達、章節缺漏、螢光標記）轉換而成。'); }
+  const seenQ = new Set(), qa2 = qa.filter(x=>{ const k = x.question.replace(/\s/g,'').slice(0,40); if(seenQ.has(k)) return false; seenQ.add(k); return true; });
+  R.step(6,'done');
+  return { data:{ qa:qa2, other_qa, warnings } };
+}
+function findName(docs){ for(const d of docs){ const m = d.text.match(/(?:計畫名稱|標案名稱|案名|計畫名)\s*[：:|]?\s*([^\n|]{4,60})/); if(m) return stripMarks(m[1]).replace(/[|]/g,'').trim(); } return ''; }
+
+/* ---------- A2. 渲染覆寫 ---------- */
+RENDER.form_ocr = function(d){
+  const forms = arr(d.forms), s = d.summary || {}, stabs = arr(s.tables), tables = [];
+  forms.forEach((f,i)=>{ arr(f.blocks).filter(b=>b.type==='table').forEach((b,j)=>tables.push({ name:`${(f.title||'表單'+(i+1)).slice(0,20)}_表${j+1}`, columns:arr(b.columns), rows:arr(b.rows).map(r=>arr(r).map(String)) })); });
+  const issues = makeTable('待確認事項', [{k:'field',h:'欄位'},{k:'problem',h:'問題'},{k:'suggestion',h:'建議'}], arr(d.issues));
+  const thumbs = {}; STATE.docs.form.forEach(doc=>arr(doc.pages).forEach(p=>{ if(p.thumb) thumbs[`${doc.name}・${p.page}`] = p.thumb; })); STATE.docs.form.forEach(doc=>{ if(doc.thumb) thumbs[`${doc.name}・1`] = doc.thumb; });
+  const formHtml = warnHtml(d.warnings) + (forms.length ? forms.map(f=>`${thumbs[f.source] ? `<details class="qa" style="margin-bottom:6px"><summary>原件對照：${esc(f.source)}</summary><div style="padding:8px;text-align:center"><img src="${thumbs[f.source]}" alt="原件" style="max-width:100%;max-height:520px;border:1px solid var(--line);border-radius:8px"></div></details>` : ''}${formToHtml(f)}`).join('') : '<div class="empty">（無表單）</div>') + (arr(d.issues).length ? secT('fa-triangle-exclamation','待確認事項') + issues.html : '');
+  const flat = { columns:[], rows:stabs.flatMap(t=>t.rows), notes:arr(s.notes) }, cov = coverageCheck(forms, { ...flat, columns:stabs.flatMap(t=>t.columns) });
+  const covHtml = (cov.missing.length ? `<div class="badbox"><b>完整性檢查（數值）：</b>表單 ${cov.total} 個數值中，摘要表缺 ${cov.missing.length} 個：${cov.missing.slice(0,30).map(esc).join('、')}</div>` : `<div class="okbox">完整性檢查（數值）：表單中 ${cov.total} 個數值均已出現在摘要表。</div>`)
+    + (cov.textMissing.length ? `<div class="warnbox"><b>完整性檢查（文字）：</b>${cov.textMissing.length} 項未出現在摘要表：${cov.textMissing.slice(0,25).map(esc).join('、')}</div>` : `<div class="okbox">完整性檢查（文字）：表單中 ${cov.textTotal} 項文字內容均已出現在摘要表。</div>`);
+  const sts = stabs.map(t=>makeTable(t.title, arr(t.columns).map((h,j)=>({k:j,h})), arr(t.rows).map(r=>arr(r).map(String))));
+  const summaryHtml = covHtml + sts.map((x,i)=>`<h3 style="margin:10px 0 6px">${esc(stabs[i].title)}</h3>`+x.html).join('') + (arr(s.notes).length ? secT('fa-note-sticky','表單備註（完整列出）') + `<ul>${s.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>` : '');
+  const cm = makeTable('契約符合情形', [{k:'clause',h:'來源'},{k:'requirement',h:'契約要求'},{k:'field_evidence',h:'現場執行情形'},{k:'status',h:'符合情形',f:badge},{k:'source',h:'來源檔',f:srcChip}], arr(d.contract_matrix));
+  const sumTables = sts.map(x=>x.table); if(arr(s.notes).length) sumTables.push({ name:'表單備註', columns:['備註'], rows:s.notes.map(n=>[n]) });
+  return { sub:{
+    form:{ html:formHtml, tables:[...tables, issues.table], text:forms.map(f=>formToRows(f).map(r=>r.join('\t')).join('\n')).join('\n\n'), sheets:forms.map((f,i)=>({ name:(f.title||'表單'+(i+1)), rows:formToRows(f) })) },
+    summary:{ html:summaryHtml, tables:sumTables, text:tablesToText(sumTables) },
+    report:{ html:`<div class="md">${md(d.report_markdown)}</div>` + (arr(d.contract_matrix).length ? secT('fa-scale-balanced','契約符合情形對照（自動比對）') + cm.html : ''), tables:[cm.table], text:d.report_markdown||'' }
+  }};
+};
+const _tenderRender = RENDER.tender;
+RENDER.tender = function(d, ctx){
+  const v = _tenderRender(d, ctx);
+  if(arr(d.budget_refs).length){ const t = makeTable('經費資料（上傳文件擷取）', [{k:'category',h:'項目'},{k:'amount',h:'金額（元）',f:money},{k:'source',h:'來源'}], d.budget_refs); v.html = v.html.replace(secT('fa-users','專業委員名單'), secT('fa-coins','經費資料（上傳文件擷取）') + t.html + secT('fa-users','專業委員名單')); v.tables.push(t.table); }
+  return v;
 };
 
-/* ---------- 12. 上傳處理 ---------- */
+/* ---------- A3. 上傳處理（含 OCR） ---------- */
 async function addFiles(zone, files){
   if(!files.length) return;
   if(zone==='ppttpl'){ STATE.docs.ppttpl = []; files = files.slice(0,1); }
   for(const file of files){
-    const ext = (file.name.split('.').pop()||'').toLowerCase();
-    const doc = { id:uid(), name:file.name, size:file.size, status:'parsing', note:'', text:'', chunks:[], kind:'text', role: guessRole(zone, file.name, '') };
+    const doc = { id:uid(), name:file.name, size:file.size, status:'parsing', note:'讀取中…', text:'', chunks:[], kind:'text', role: guessRole(zone, file.name, '') };
     STATE.docs[zone].push(doc); renderList(zone); renderRagBar(zone);
+    const note = t => { doc.note = t; renderList(zone); };
     try{
       if(!file.size) throw new Error('空白檔案');
       const buf = await readAsArrayBuffer(file);
@@ -2237,43 +2646,43 @@ async function addFiles(zone, files){
       if(zone==='ppttpl'){
         if(kind!=='zip') throw new Error(kind==='ole' ? '舊版 .ppt／.pot 底板請先於 PowerPoint 另存為 .pptx' : '底板請上傳 .pptx／.potx／.ppsx');
         doc.buf = buf; doc.tpl = await parseTemplate(buf.slice(0));
-        const pk = pickLayouts(doc.tpl);
-        const ln = f => doc.tpl.layouts.find(l=>l.file===f)?.name;
-        const L = doc.tpl.learn || {};
-        doc.note = `${doc.tpl.layouts.length} 種版面・封面「${ln(L.cover?.layout) || pk.cover.name}」・內容「${ln(L.content?.layout) || pk.content.name}」${L.closing?`・結尾「${ln(L.closing.layout)||'—'}」`:''}・標題樣式${L.content?.title?'已擷取':'採預設'}・主色 ${(L.palette||[])[0] || doc.tpl.theme.colors.accent1 || '—'}`;
+        const pk = pickLayouts(doc.tpl), ln = f => doc.tpl.layouts.find(l=>l.file===f)?.name, L = doc.tpl.learn || {};
+        doc.note = `${doc.tpl.layouts.length} 種版面・封面「${ln(L.cover?.layout) || pk.cover.name}」・內容「${ln(L.content?.layout) || pk.content.name}」${L.closing?`・結尾「${ln(L.closing.layout)||'—'}」`:''}・主色 ${(L.palette||[])[0] || doc.tpl.theme.colors.accent1 || '—'}`;
       }
       else if(kind==='image' || kind==='heic' || kind==='tiff' || (file.type.startsWith('image/') && kind==='other')){
-        const r = await imageToBase64(file);
-        Object.assign(doc, { kind:'image', b64:r.data, mediaType:r.mediaType, preview:r.preview, note:`圖片 ${r.width}×${r.height}・送 AI 視覺辨識` });
+        const c = await imageFileToCanvas(file); doc.preview = canvasThumb(c, 120); doc.thumb = canvasThumb(c, 900);
+        note('OCR 辨識中（首次需下載繁中語言檔）…');
+        const L = await OCR.read(c, m=>{ if(m.status==='recognizing text') note(`OCR 辨識中 ${Math.round(m.progress*100)}%`); else if(/load/.test(m.status||'')) note(`載入 OCR：${m.status} ${Math.round((m.progress||0)*100)}%`); });
+        doc.pages = [{ page:1, lines:L.lines, text:L.text, conf:L.conf, ocr:true, thumb:doc.thumb }]; doc.text = fixCJK(L.text); doc.ocr = true; doc.kind = 'image';
+        if(!doc.text.trim()) throw new Error('OCR 未辨識到文字（請確認影像清晰、方向正確）');
+        doc.note = `圖片 OCR・平均信心 ${Math.round(L.conf)}%`;
       }
-      else if(kind==='pdf' && zone==='form'){
-        if(file.size > PDF_MAX_BYTES) throw new Error('PDF 超過 20 MB，請分割後上傳');
-        Object.assign(doc, { kind:'pdf', b64: bufToBase64(buf), note:'PDF・整份送 AI 辨識（含掃描頁、手寫）' });
+      else if(kind==='pdf'){
+        const r = await pdfToPages(buf, note);
+        doc.pages = r.pages; doc.text = fixCJK(pagesToText(r.pages)); doc.ocr = r.ocrPages > 0;
+        const failed = r.pages.filter(p=>p.err).length, skipped = r.pages.filter(p=>p.skipped).length;
+        if(!doc.text.replace(/【第 \d+ 頁】|\s/g,'')) throw new Error(failed ? '掃描型 PDF 的 OCR 失敗：'+r.pages.find(p=>p.err).err : 'PDF 中沒有可辨識的文字');
+        doc.note = `PDF ${r.numPages} 頁${r.ocrPages?`（${r.ocrPages} 頁 OCR）`:''}${failed?`・${failed} 頁 OCR 失敗`:''}${skipped?`・${skipped} 頁超過 OCR 上限未處理`:''}`;
       }
       else{
         const r = await extractText(file, buf); doc.text = (r.text||'').trim(); doc.note = r.note;
-        if(!doc.text && kind==='pdf'){
-          if(file.size <= PDF_MAX_BYTES){ doc.kind = 'pdf-scan'; doc.b64 = bufToBase64(buf); doc.note += '，以 PDF 原檔送 AI 判讀'; }
-          else doc.note += '，超過 20 MB 無法附上，請先 OCR 或分割';
-        }
-        if(!doc.text && kind!=='pdf') throw new Error('未擷取到文字（可能為空白、加密或純圖片檔）');
-        if(doc.text){ indexDoc(doc); doc.note += `・${doc.text.length.toLocaleString()} 字・${doc.chunks.length} 區塊`; }
-        if(ROLES[zone]) doc.role = guessRole(zone, file.name, doc.text);
-        const marks = (doc.text.match(/〔(黃標|綠標|[^〔〕/]{1,4}標)〕/g)||[]).length;
-        if(marks) doc.note += `・螢光標記 ${marks} 處`;
+        if(!doc.text) throw new Error('未擷取到文字（可能為空白、加密或純圖片檔）');
       }
+      if(doc.text){ indexDoc(doc); doc.note += `・${doc.text.length.toLocaleString()} 字`; }
+      if(ROLES[zone]) doc.role = guessRole(zone, file.name, doc.text);
+      const marks = (doc.text.match(/〔(黃標|綠標|[^〔〕/]{1,4}標)〕/g)||[]).length; if(marks) doc.note += `・螢光標記 ${marks} 處`;
       doc.status = 'ready';
     }catch(e){ console.error(e); doc.status = 'error'; doc.note = e.message || String(e); toast(`${esc(file.name)}：${esc(doc.note)}`,'err'); }
     renderList(zone); renderRagBar(zone);
   }
 }
-function fileIcon(n){ return /pdf$/i.test(n)?'fa-file-pdf':/(docx?|docm|dotx?|odt|ott|rtf|wps)$/i.test(n)?'fa-file-word':/(pptx?|pptm|ppsx?|potx?|odp|dps)$/i.test(n)?'fa-file-powerpoint':/(xlsx?|xlsm|ods|csv|et)$/i.test(n)?'fa-file-excel':'fa-file-lines'; }
+function fileIcon(n){ return /pdf$/i.test(n)?'fa-file-pdf':/(docx?|docm|dotx?|odt|ott|rtf|wps)$/i.test(n)?'fa-file-word':/(pptx?|pptm|ppsx?|potx?|odp|dps)$/i.test(n)?'fa-file-powerpoint':/(xlsx?|xlsm|ods|csv|et)$/i.test(n)?'fa-file-excel':/(jpe?g|png|gif|webp|bmp|tiff?|heic)$/i.test(n)?'fa-file-image':'fa-file-lines'; }
 function renderList(zone){
   const el = $('#list-'+zone); if(!el) return;
   const roles = ROLES[zone];
   el.innerHTML = STATE.docs[zone].map(d=>{
     const ic = d.preview ? `<img src="${d.preview}" alt="">` : `<i class="fa-solid ${fileIcon(d.name)}" style="font-size:1.35rem;color:var(--brand);width:36px;text-align:center"></i>`;
-    const st = d.status==='parsing' ? '<span class="chip c-warn">解析中…</span>' : d.status==='error' ? '<span class="chip c-bad">失敗</span>' : d.kind==='pdf-scan' ? '<span class="chip c-warn">掃描檔</span>' : '<span class="chip c-ok">就緒</span>';
+    const st = d.status==='parsing' ? '<span class="chip c-warn">處理中…</span>' : d.status==='error' ? '<span class="chip c-bad">失敗</span>' : d.ocr ? '<span class="chip c-warn">已 OCR</span>' : '<span class="chip c-ok">就緒</span>';
     const sel = roles && d.status!=='error' ? `<select data-role="${zone}:${d.id}" title="文件類別" aria-label="文件類別">${roles.map(r=>`<option ${r===d.role?'selected':''}>${esc(r)}</option>`).join('')}</select>` : '';
     return `<div class="fitem">${ic}<div class="nm"><div style="font-weight:600" title="${esc(d.name)}">${esc(d.name)}</div><div class="meta">${fmtSize(d.size)}・${esc(d.note)}</div></div><div class="ctl">${sel}${st}<button class="btn btn-sm" data-rm="${zone}:${d.id}" title="移除" aria-label="移除">✕</button></div></div>`;
   }).join('');
@@ -2292,24 +2701,57 @@ function bindDropzone(dz){
   dz.addEventListener('drop', e=>{ e.preventDefault(); depth=0; dz.classList.remove('drag'); addFiles(zone, Array.from(e.dataTransfer.files||[])); });
 }
 
-/* ---------- 13. 設定、主題、分頁、初始化 ---------- */
-function updateModeBadge(){
-  const m = { mock:['c-mute','模擬模式'], proxy:['c-ok','後端代理'], direct:['c-warn','瀏覽器直連'] }[CFG.mode] || ['c-mute','模擬模式'];
-  $('#modeBadge').className = 'chip '+m[0]; $('#modeBadge').textContent = m[1];
+/* ---------- A4. 專案存檔／讀檔（本機檔案，可 AES-256-GCM 加密） ---------- */
+const INPUT_IDS = ['form-hint','review-focus','gov-idea','gov-agency','gov-budget','gov-months','gov-kw'];
+const b64e = u8 => bufToBase64(u8.buffer ? u8.buffer.slice(u8.byteOffset, u8.byteOffset+u8.byteLength) : u8);
+const b64d = s => { const b = atob(s), u = new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i] = b.charCodeAt(i); return u; };
+async function deriveKey(pw, salt){ const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:250000, hash:'SHA-256' }, base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']); }
+function askPassword(title, desc){ return new Promise(res=>{ const m = $('#pwModal'); $('#pwTitle').textContent = title; $('#pwDesc').textContent = desc; $('#pwInput').value = ''; m.classList.add('show'); setTimeout(()=>$('#pwInput').focus(), 50);
+  const done = v => { m.classList.remove('show'); $('#pwOk').onclick = $('#pwCancel').onclick = $('#pwInput').onkeydown = null; res(v); };
+  $('#pwOk').onclick = ()=>done($('#pwInput').value); $('#pwCancel').onclick = ()=>done(null); $('#pwInput').onkeydown = e=>{ if(e.key==='Enter') done($('#pwInput').value); if(e.key==='Escape') done(null); }; }); }
+function snapshot(){
+  const docs = {};
+  Object.entries(STATE.docs).forEach(([z, list])=>docs[z] = list.filter(d=>d.status==='ready').map(d=>({ id:d.id, name:d.name, size:d.size, role:d.role, kind:d.kind, text:d.text, note:d.note, ocr:!!d.ocr, preview:d.preview||null, thumb:d.thumb||null,
+    pages: d.pages ? d.pages.map(p=>({ page:p.page, lines:p.lines, text:p.text, conf:p.conf, ocr:p.ocr, thumb:p.thumb||null })) : null, buf: d.buf ? b64e(new Uint8Array(d.buf)) : null })));
+  const inputs = {}; INPUT_IDS.forEach(id=>inputs[id] = $('#'+id).value);
+  return { app:'doc-assistant', version:4, saved:new Date().toISOString(), inputs, checks:{ 'gov-openalex':$('#gov-openalex').checked, 'rev-openalex':$('#rev-openalex').checked }, docs, results:STATE.results };
 }
-function toggleGroups(){ const m = ($('input[name=mode]:checked')||{}).value || 'mock'; $('#grpDirect').style.display = m==='direct'?'':'none'; $('#grpProxy').style.display = m==='proxy'?'':'none'; }
-function openSettings(){
-  $$('input[name=mode]').forEach(r=>r.checked = r.value===CFG.mode);
-  $('#cfgKey').value = CFG.apiKey||''; $('#cfgRemember').checked = !!CFG.remember; $('#cfgEndpoint').value = CFG.endpoint||''; $('#cfgToken').value = CFG.token||'';
-  $('#cfgModel').value = CFG.model||''; $('#cfgRag').value = CFG.rag||''; $('#cfgMaxTok').value = CFG.maxTokens; $('#cfgTopK').value = CFG.topK; $('#cfgCtx').value = CFG.maxCtx;
-  toggleGroups(); $('#cfgMsg').textContent = ''; $('#settingsModal').classList.add('show');
+async function saveProject(){
+  const has = Object.values(STATE.docs).some(l=>l.length) || Object.keys(STATE.results).length;
+  if(!has){ toast('目前沒有資料可儲存','err'); return; }
+  const pw = await askPassword('儲存專案', '輸入密碼可用 AES-256-GCM 加密專案檔（建議）；留空則不加密。專案檔只會下載到你的電腦。'); if(pw===null) return;
+  let payload = new TextEncoder().encode(JSON.stringify(snapshot())), file;
+  if(pw){ const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), key = await deriveKey(pw, salt); const ct = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, payload)); file = JSON.stringify({ app:'doc-assistant', enc:'AES-256-GCM/PBKDF2-SHA256-250000', salt:b64e(salt), iv:b64e(iv), data:b64e(ct) }); }
+  else file = new TextDecoder().decode(payload);
+  downloadBlob(file, `文書專案_${nowStamp()}.dawp`, 'application/json'); toast('專案檔已下載'+(pw?'（已加密）':''),'ok');
 }
-function readCfgForm(){
-  return { mode:($('input[name=mode]:checked')||{}).value||'mock', apiKey:$('#cfgKey').value.trim(), remember:$('#cfgRemember').checked, endpoint:$('#cfgEndpoint').value.trim(), token:$('#cfgToken').value.trim(),
-    model:$('#cfgModel').value.trim()||DEFAULT_CFG.model, rag:$('#cfgRag').value.trim(), maxTokens:Math.max(1024, +$('#cfgMaxTok').value||DEFAULT_CFG.maxTokens),
-    topK:Math.max(1, +$('#cfgTopK').value||DEFAULT_CFG.topK), maxCtx:Math.max(5000, +$('#cfgCtx').value||DEFAULT_CFG.maxCtx) };
+async function openProject(file){
+  try{
+    let obj = JSON.parse(await file.text());
+    if(obj.enc){ const pw = await askPassword('開啟加密專案', '請輸入儲存時設定的密码。'.replace('码','碼')); if(pw===null) return; try{ const key = await deriveKey(pw, b64d(obj.salt)); obj = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64d(obj.iv) }, key, b64d(obj.data)))); }catch(e){ toast('密碼錯誤或檔案損毀','err'); return; } }
+    if(obj.app!=='doc-assistant') throw new Error('不是本工具的專案檔');
+    wipeAll(true);
+    Object.entries(obj.docs||{}).forEach(([z, list])=>{ STATE.docs[z] = list.map(d=>{ const x = { ...d, status:'ready', chunks:[] }; if(d.buf) x.buf = b64d(d.buf).buffer; if(x.text) indexDoc(x); return x; }); });
+    for(const d of STATE.docs.ppttpl){ if(d.buf) d.tpl = await parseTemplate(d.buf.slice(0)); }
+    Object.entries(obj.inputs||{}).forEach(([k,v])=>{ const el = $('#'+k); if(el) el.value = v; });
+    Object.entries(obj.checks||{}).forEach(([k,v])=>{ const el = $('#'+k); if(el) el.checked = v; });
+    Object.keys(STATE.docs).forEach(z=>{ renderList(z); renderRagBar(z); });
+    STATE.results = obj.results || {};
+    Object.entries(STATE.results).forEach(([P, r])=>{ try{ renderResult(P, r.action, r.data, r.ctx||{}, r.engine||{ ai:false, label:'規則引擎' }); }catch(e){ console.error(e); } });
+    toast(`已開啟專案（${obj.saved ? new Date(obj.saved).toLocaleString('zh-TW') : ''}）`,'ok');
+  }catch(e){ console.error(e); toast('專案檔無法開啟：'+esc(e.message),'err'); }
 }
-function setTheme(dark){ document.documentElement.classList.toggle('dark', dark); $('#btnTheme').textContent = dark ? '☀' : '☾'; try{ localStorage.setItem('dat3_theme', dark?'dark':'light'); }catch(e){} }
+function wipeAll(silent){
+  Object.keys(STATE.docs).forEach(z=>{ STATE.docs[z] = []; STATE.lastRetrieval[z] = null; renderList(z); renderRagBar(z); });
+  STATE.results = {}; STATE.panels = {};
+  INPUT_IDS.forEach(id=>{ $('#'+id).value = ''; });
+  ['res-form','res-review','res-gov'].forEach(emptyPanel);
+  if(!silent) toast('已清除本頁所有資料','ok');
+}
+
+/* ---------- A5. 初始化 ---------- */
+function emptyPanel(id){ $('#'+id).innerHTML = `<div class="panel-hd"><div class="ttl">結果面板</div></div><div class="panel-bd"><div class="empty"><i class="fa-solid fa-wand-magic-sparkles"></i>上傳文件後點擊功能按鈕，結果會顯示在這裡<br><small>所有處理都在這台電腦上完成</small></div></div>`; }
+function setTheme(dark){ document.documentElement.classList.toggle('dark', dark); $('#btnTheme').textContent = dark ? '☀' : '☾'; }
 function switchTab(name){
   if(!$('#tab-'+name)) name = 'report';
   $$('.tab-btn').forEach(b=>{ const on = b.dataset.tab===name; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
@@ -2317,9 +2759,8 @@ function switchTab(name){
   try{ history.replaceState(null,'','#'+name); }catch(e){}
 }
 document.addEventListener('DOMContentLoaded', ()=>{
-  let th = null; try{ th = localStorage.getItem('dat3_theme'); }catch(e){}
-  setTheme(th ? th==='dark' : matchMedia('(prefers-color-scheme: dark)').matches);
-  updateModeBadge(); $$('.dz').forEach(bindDropzone);
+  setTheme(matchMedia('(prefers-color-scheme: dark)').matches);
+  updateAIBadge(); $$('.dz').forEach(bindDropzone);
   ['res-form','res-review','res-gov'].forEach(emptyPanel); ['contract','review','gov'].forEach(renderRagBar);
   switchTab(location.hash.slice(1)||'report');
   $$('.tab-btn').forEach(b=>b.addEventListener('click', ()=>switchTab(b.dataset.tab)));
@@ -2329,22 +2770,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('change', e=>{ const s = e.target.closest('[data-role]'); if(!s) return; const [z,id] = s.dataset.role.split(':'); const d = STATE.docs[z].find(x=>x.id===id); if(d){ d.role = s.value; renderRagBar(z); } });
   ['dragover','drop'].forEach(ev=>window.addEventListener(ev, e=>{ if(!e.target.closest || !e.target.closest('.dz')) e.preventDefault(); }));
   $('#btnTheme').addEventListener('click', ()=>setTheme(!document.documentElement.classList.contains('dark')));
-  $('#btnSettings').addEventListener('click', openSettings);
-  $$('[data-close-modal]').forEach(b=>b.addEventListener('click', ()=>$('#settingsModal').classList.remove('show')));
-  $('#settingsModal').addEventListener('click', e=>{ if(e.target.id==='settingsModal') e.currentTarget.classList.remove('show'); });
-  $$('input[name=mode]').forEach(r=>r.addEventListener('change', toggleGroups));
-  $('#btnSaveCfg').addEventListener('click', ()=>{ saveCfg(readCfgForm()); CFG = loadCfg(); updateModeBadge(); $('#settingsModal').classList.remove('show'); toast('設定已儲存','ok'); });
-  $('#btnClearKey').addEventListener('click', ()=>{ sessionStorage.removeItem('dat3_key'); localStorage.removeItem('dat3_key'); $('#cfgKey').value=''; CFG.apiKey=''; toast('已清除 API Key','ok'); });
-  $('#btnTestCfg').addEventListener('click', async ()=>{
-    const prev = CFG; CFG = readCfgForm(); const msg = $('#cfgMsg');
-    if(CFG.mode==='mock'){ msg.textContent = '模擬模式不需連線。'; CFG = prev; return; }
-    msg.textContent = '測試中…';
-    try{ const r = await callClaude({ system:'只回覆 OK', content:[{type:'text',text:'ping'}], maxTokens:16, action:'ping' });
-      msg.innerHTML = `<span style="color:var(--ok)">連線成功（${esc(CFG.model)}：${esc(r.text.slice(0,40))}）</span>`; }
-    catch(e){ msg.innerHTML = `<span style="color:var(--bad)">${esc(e.message)}</span>`; }
-    finally{ CFG = prev; }
-  });
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape') $('#settingsModal').classList.remove('show'); });
+  $('#btnLoadAI').addEventListener('click', ()=>AI.ensure());
+  $('#btnSave').addEventListener('click', saveProject);
+  $('#btnOpen').addEventListener('click', ()=>$('#projFile').click());
+  $('#projFile').addEventListener('change', e=>{ const f = e.target.files[0]; e.target.value = ''; if(f) openProject(f); });
+  $('#btnWipe').addEventListener('click', ()=>{ if(STATE.busy){ toast('處理中，請稍候'); return; } if(confirm('確定清除本頁所有上傳資料與成果？（未存專案者將無法復原）')) wipeAll(); });
+  window.addEventListener('beforeunload', e=>{ if(Object.values(STATE.docs).some(l=>l.length) || Object.keys(STATE.results).length){ e.preventDefault(); e.returnValue = ''; } });
 });
 </script>
 </body>
